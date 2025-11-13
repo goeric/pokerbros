@@ -58,6 +58,10 @@ export default function StatsClient({ players }: StatsClientProps) {
     return true;
   });
 
+  // Check if we have any meaningful data to display
+  const hasCompletedGames = sortedStats.some(stat => stat.gamesPlayed > 0);
+  const showLeaderboard = hasCompletedGames;
+
   const getBadge = (stat: PlayerStats) => {
     const profit = stat.totalOut - stat.totalIn;
 
@@ -104,8 +108,22 @@ export default function StatsClient({ players }: StatsClientProps) {
         </Button>
       </div>
 
+      {/* Empty State - No Games Played Yet */}
+      {!showLeaderboard && (
+        <Card className="p-12 text-center">
+          <p className="text-6xl mb-4">🎴</p>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Statistics Yet</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Complete some games to see player rankings and statistics!
+          </p>
+          <Button onClick={() => router.push('/')}>
+            Go to Dashboard
+          </Button>
+        </Card>
+      )}
+
       {/* Top 3 Podium */}
-      {filteredStats.length >= 3 && (
+      {showLeaderboard && filteredStats.length >= 3 && (
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <PodiumCard
             rank={2}
@@ -130,6 +148,7 @@ export default function StatsClient({ players }: StatsClientProps) {
       )}
 
       {/* Full Leaderboard */}
+      {showLeaderboard && (
       <Card className="p-6">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Full Leaderboard</h2>
 
@@ -210,9 +229,10 @@ export default function StatsClient({ players }: StatsClientProps) {
           })}
         </div>
       </Card>
+      )}
 
-      {/* Empty State */}
-      {filteredStats.length === 0 && (
+      {/* Empty State - Filtered Results */}
+      {showLeaderboard && filteredStats.length === 0 && (
         <Card className="p-12 text-center">
           <p className="text-6xl mb-4">📊</p>
           <h3 className="text-2xl font-bold text-white mb-2">No Statistics Yet</h3>
