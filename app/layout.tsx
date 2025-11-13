@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: 'PokerBros - Never Miss a Full Table',
   description: 'Manage your home poker games with real-time tracking and player statistics',
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/logo.svg',
+    apple: '/logo.svg',
   },
   metadataBase: new URL('https://pokerbros.vercel.app'),
   openGraph: {
