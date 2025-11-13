@@ -4,11 +4,11 @@ import { Game, RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
 
 interface GamePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function GameDetailPage({ params }: GamePageProps) {
-  const gameId = params.id;
+  const { id: gameId } = await params;
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
