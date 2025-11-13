@@ -52,7 +52,7 @@ export interface RSVP {
 export interface QuickStats {
   totalGamesHosted: number;
   totalMoneyPlayed: number;
-  chipLeader: { name: string; profit: number } | null;
+  chipLeader: { player: Player; profit: number } | null;
   nextGameDate: string | null;
 }
 

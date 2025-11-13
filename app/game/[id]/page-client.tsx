@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Game, RSVP, Player } from '@/types';
-import { formatDate, formatDateWithDay, formatTime, formatCurrency, isToday } from '@/lib/utils';
+import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isToday } from '@/lib/utils';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -12,8 +12,7 @@ import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
 import { useAuth } from '@/lib/auth-context';
 import GameFormModal from '@/components/GameFormModal';
-import { addRSVP, cancelRSVP, startGame, deleteGame } from './actions';
-import { supabase } from '@/lib/supabase';
+import { addRSVP, cancelRSVP, startGame, updateGame, deleteGame } from './actions';
 
 interface GameDetailClientProps {
   game: Game;
@@ -74,27 +73,17 @@ export default function GameDetailClient({
   };
 
   const handleEditGame = async (formData: { date: string; time: string; buyIn: number; venue: string; notes: string }) => {
-    if (!supabase) return;
+    startTransition(async () => {
+      const result = await updateGame(game.id, formData);
 
-    const { error } = await supabase
-      .from('games')
-      .update({
-        date: formData.date,
-        time: formData.time,
-        buyIn: formData.buyIn,
-        venue: formData.venue,
-        notes: formData.notes || null,
-      })
-      .eq('id', game.id);
+      if (result.error) {
+        alert('Failed to update game. Please try again.');
+        return;
+      }
 
-    if (error) {
-      console.error('Error updating game:', error);
-      alert('Failed to update game. Please try again.');
-      throw error;
-    }
-
-    setShowEditModal(false);
-    router.refresh();
+      setShowEditModal(false);
+      router.refresh();
+    });
   };
 
   // Check if game should be live based on its scheduled time
@@ -251,7 +240,7 @@ export default function GameDetailClient({
                   <option value="">Select player to RSVP...</option>
                   {availablePlayers.map(player => (
                     <option key={player.id} value={player.id}>
-                      {player.name}
+                      {formatPlayerName(player)}
                     </option>
                   ))}
                 </select>

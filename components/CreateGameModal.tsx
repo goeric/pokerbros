@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createGame } from '@/app/actions';
 import GameFormModal from './GameFormModal';
 
 interface CreateGameModalProps {
@@ -12,37 +12,24 @@ interface CreateGameModalProps {
 
 export default function CreateGameModal({ isOpen, onClose }: CreateGameModalProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (formData: { date: string; time: string; buyIn: number; venue: string; notes: string }) => {
-    if (!supabase) return;
+    startTransition(async () => {
+      const result = await createGame(formData);
 
-    // Insert game into Supabase
-    const { data, error } = await supabase
-      .from('games')
-      .insert({
-        date: formData.date,
-        time: formData.time,
-        buyIn: formData.buyIn,
-        venue: formData.venue,
-        status: 'upcoming',
-        notes: formData.notes || null,
-        createdAt: new Date().toISOString(),
-      })
-      .select()
-      .single();
+      if (result.error) {
+        alert('Failed to create game. Please try again.');
+        return;
+      }
 
-    if (error) {
-      console.error('Error creating game:', error);
-      alert('Failed to create game. Please try again.');
-      throw error;
-    }
+      onClose();
 
-    onClose();
-
-    // Redirect to game page
-    if (data) {
-      router.push(`/game/${data.id}`);
-    }
+      // Redirect to game page
+      if (result.data) {
+        router.push(`/game/${result.data.id}`);
+      }
+    });
   };
 
   return (

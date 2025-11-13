@@ -4,8 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-function createSupabaseServerClient() {
-  const cookieStore = cookies();
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -34,7 +34,7 @@ function createSupabaseServerClient() {
 }
 
 export async function initializeGamePlayers(gameId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Get game buy-in amount
   const { data: game } = await supabase
@@ -90,7 +90,7 @@ export async function initializeGamePlayers(gameId: string) {
 }
 
 export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount: number) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Get current buy-ins
   const { data: gamePlayer } = await supabase

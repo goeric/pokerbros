@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
   // Create response that we'll redirect with
   let response = NextResponse.next();
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   // Create Supabase client with proper cookie handling
   const supabase = createServerClient(

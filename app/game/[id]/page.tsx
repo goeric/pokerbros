@@ -9,7 +9,7 @@ interface GamePageProps {
 
 export default async function GameDetailPage({ params }: GamePageProps) {
   const gameId = params.id;
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

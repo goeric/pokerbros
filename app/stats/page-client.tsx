@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Player } from '@/types';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -109,20 +109,20 @@ export default function StatsClient({ players }: StatsClientProps) {
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <PodiumCard
             rank={2}
-            playerName={filteredStats[1].name}
+            playerName={formatPlayerName(filteredStats[1])}
             profit={filteredStats[1].totalOut - filteredStats[1].totalIn}
             winRate={filteredStats[1].winRate}
           />
           <PodiumCard
             rank={1}
-            playerName={filteredStats[0].name}
+            playerName={formatPlayerName(filteredStats[0])}
             profit={filteredStats[0].totalOut - filteredStats[0].totalIn}
             winRate={filteredStats[0].winRate}
             gamesPlayed={filteredStats[0].gamesPlayed}
           />
           <PodiumCard
             rank={3}
-            playerName={filteredStats[2].name}
+            playerName={formatPlayerName(filteredStats[2])}
             profit={filteredStats[2].totalOut - filteredStats[2].totalIn}
             winRate={filteredStats[2].winRate}
           />
@@ -166,7 +166,7 @@ export default function StatsClient({ players }: StatsClientProps) {
                 {/* Player */}
                 <div className="col-span-2 flex items-center">
                   <div>
-                    <p className="font-bold text-gray-900 dark:text-white">{stat.name}</p>
+                    <p className="font-bold text-gray-900 dark:text-white">{formatPlayerName(stat)}</p>
                     <p className="text-gray-600 dark:text-gray-400 text-sm md:hidden">
                       {stat.gamesPlayed} games • {stat.winRate.toFixed(0)}% win rate
                     </p>

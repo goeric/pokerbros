@@ -6,7 +6,7 @@ import AdminClient from './components/AdminClient';
 // This is a Server Component - it runs on the server and fetches data before rendering
 export default async function AdminPage() {
   // Create Supabase server client
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
