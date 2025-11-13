@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Outer ring -->
+  <circle cx="64" cy="64" r="60" fill="#059669" stroke="#FBBF24" stroke-width="4"/>
+
+  <!-- Chip pattern segments -->
+  <g fill="#FBBF24">
+    <!-- Top segment -->
+    <rect x="60" y="8" width="8" height="16" rx="2"/>
+    <!-- Top-right segment -->
+    <rect x="92" y="20" width="16" height="8" rx="2" transform="rotate(45 100 24)"/>
+    <!-- Right segment -->
+    <rect x="104" y="60" width="16" height="8" rx="2"/>
+    <!-- Bottom-right segment -->
+    <rect x="92" y="100" width="16" height="8" rx="2" transform="rotate(-45 100 104)"/>
+    <!-- Bottom segment -->
+    <rect x="60" y="104" width="8" height="16" rx="2"/>
+    <!-- Bottom-left segment -->
+    <rect x="20" y="100" width="16" height="8" rx="2" transform="rotate(45 28 104)"/>
+    <!-- Left segment -->
+    <rect x="8" y="60" width="16" height="8" rx="2"/>
+    <!-- Top-left segment -->
+    <rect x="20" y="20" width="16" height="8" rx="2" transform="rotate(-45 28 24)"/>
+  </g>
+
+  <!-- Inner circle -->
+  <circle cx="64" cy="64" r="40" fill="#047857" stroke="#FBBF24" stroke-width="2"/>
+
+  <!-- Center design - Spade symbol -->
+  <g fill="#FBBF24">
+    <path d="M64 38 C54 48, 54 58, 64 68 C74 58, 74 48, 64 38 Z"/>
+    <path d="M58 65 L64 72 L70 65 L68 65 L68 72 L60 72 L60 65 Z"/>
+  </g>
+
+  <!-- Inner detail circles -->
+  <circle cx="64" cy="32" r="3" fill="#FBBF24" opacity="0.6"/>
+  <circle cx="82" cy="45" r="3" fill="#FBBF24" opacity="0.6"/>
+  <circle cx="82" cy="83" r="3" fill="#FBBF24" opacity="0.6"/>
+  <circle cx="64" cy="96" r="3" fill="#FBBF24" opacity="0.6"/>
+  <circle cx="46" cy="83" r="3" fill="#FBBF24" opacity="0.6"/>
+  <circle cx="46" cy="45" r="3" fill="#FBBF24" opacity="0.6"/>
+</svg>
