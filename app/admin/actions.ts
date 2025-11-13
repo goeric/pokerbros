@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 // Helper to create Supabase server client
-function createSupabaseServerClient() {
-  const cookieStore = cookies();
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,7 +37,7 @@ function createSupabaseServerClient() {
 }
 
 export async function createPlayer(formData: FormData) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const first_name = formData.get('first_name') as string;
   const last_name = formData.get('last_name') as string;
@@ -68,7 +68,7 @@ export async function createPlayer(formData: FormData) {
 }
 
 export async function updatePlayer(playerId: string, formData: FormData) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const first_name = formData.get('first_name') as string;
   const last_name = formData.get('last_name') as string;
@@ -95,7 +95,7 @@ export async function updatePlayer(playerId: string, formData: FormData) {
 }
 
 export async function deletePlayer(playerId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
     .from('players')

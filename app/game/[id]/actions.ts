@@ -4,8 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-function createSupabaseServerClient() {
-  const cookieStore = cookies();
+async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -34,7 +34,7 @@ function createSupabaseServerClient() {
 }
 
 export async function addRSVP(gameId: string, playerId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Get current RSVPs to determine status
   const { data: rsvps } = await supabase
@@ -65,7 +65,7 @@ export async function addRSVP(gameId: string, playerId: string) {
 }
 
 export async function cancelRSVP(gameId: string, playerId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   // Get the RSVP to check status
   const { data: rsvp } = await supabase
@@ -109,7 +109,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
 }
 
 export async function startGame(gameId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
     .from('games')
@@ -124,8 +124,33 @@ export async function startGame(gameId: string) {
   return { success: true };
 }
 
+export async function updateGame(
+  gameId: string,
+  gameData: { date: string; time: string; buyIn: number; venue: string; notes: string }
+) {
+  const supabase = await createSupabaseServerClient();
+
+  const { error } = await supabase
+    .from('games')
+    .update({
+      date: gameData.date,
+      time: gameData.time,
+      buyIn: gameData.buyIn,
+      venue: gameData.venue,
+      notes: gameData.notes || null,
+    })
+    .eq('id', gameId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/game/${gameId}`);
+  return { success: true };
+}
+
 export async function deleteGame(gameId: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
     .from('games')

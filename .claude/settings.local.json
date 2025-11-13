@@ -20,7 +20,10 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
       "Bash(PORT=3000 npm run dev:*)",
-      "Bash(export PORT=3000)"
+      "Bash(export PORT=3000)",
+      "Bash(npx tsc:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix build errors for production deployment\n\n- Fixed async cookies() calls in all page components and Server Actions\n- Added await to cookies() calls in Next.js 16 compatibility\n- Fixed Player type references (changed .name to formatPlayerName())\n- Created Server Actions for game creation and updates\n- Updated CreateGameModal to use Server Action instead of client-side Supabase\n- Fixed QuickStats type to use Player object instead of just name string\n- Converted seed data from name property to first_name/last_name/nickname\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

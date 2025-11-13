@@ -96,7 +96,7 @@ export default function LiveGameClient({
           <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Most Rebuys</p>
           {mostRebuys ? (
             <p className="text-lg font-bold text-amber-700 dark:text-amber-400 truncate">
-              {players.find(p => p.id === mostRebuys.playerId)?.name.split(' ')[0]}
+              {players.find(p => p.id === mostRebuys.playerId)?.first_name}
             </p>
           ) : (
             <div className="flex items-center gap-2">

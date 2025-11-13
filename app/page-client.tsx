@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
-import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
+import { formatDate, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
@@ -32,13 +32,13 @@ export default function HomeClient({ games, players, gamePlayers, rsvps }: HomeC
   const totalMoneyPlayed = completedGames.reduce((sum, game) => sum + game.buyIn, 0);
 
   // Find chip leader
-  let chipLeader: { name: string; profit: number } | null = null;
+  let chipLeader: { player: Player; profit: number } | null = null;
   if (players.length > 0) {
     const sortedByProfit = [...players].sort((a, b) => (b.totalOut - b.totalIn) - (a.totalOut - a.totalIn));
     const leader = sortedByProfit[0];
     if (leader && (leader.totalOut - leader.totalIn) > 0) {
       chipLeader = {
-        name: `${leader.first_name} ${leader.last_name}`,
+        player: leader,
         profit: leader.totalOut - leader.totalIn
       };
     }
@@ -136,7 +136,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps }: HomeC
               <div>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Current Leader</p>
                 <p className="text-xl font-bold text-gray-900 dark:text-white truncate">
-                  {quickStats.chipLeader ? quickStats.chipLeader.name : '-'}
+                  {quickStats.chipLeader ? formatPlayerName(quickStats.chipLeader.player) : '-'}
                 </p>
               </div>
             </div>

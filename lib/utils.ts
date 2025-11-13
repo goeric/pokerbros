@@ -73,7 +73,7 @@ export function getQuickStats(): QuickStats {
     totalGamesHosted: completedGames.length,
     totalMoneyPlayed,
     chipLeader: chipLeader ? {
-      name: chipLeader.name,
+      player: chipLeader,
       profit: chipLeader.totalOut - chipLeader.totalIn
     } : null,
     nextGameDate: upcomingGames.length > 0 ? upcomingGames[0].date : null,
