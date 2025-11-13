@@ -1,5 +1,4 @@
 import { Player, Game, GamePlayer, RSVP } from '@/types';
-import { seedPlayers, seedGames, seedGamePlayers, seedRSVPs } from './seed-data';
 
 // In-memory store for local development (falls back when Supabase not configured)
 class LocalStore {
@@ -21,10 +20,10 @@ class LocalStore {
       if (stored) {
         try {
           const data = JSON.parse(stored);
-          this.players = data.players || [...seedPlayers];
-          this.games = data.games || [...seedGames];
-          this.gamePlayers = data.gamePlayers || [...seedGamePlayers];
-          this.rsvps = data.rsvps || [...seedRSVPs];
+          this.players = data.players || [];
+          this.games = data.games || [];
+          this.gamePlayers = data.gamePlayers || [];
+          this.rsvps = data.rsvps || [];
           return;
         } catch (e) {
           console.error('Failed to parse stored data:', e);
@@ -32,11 +31,11 @@ class LocalStore {
       }
     }
 
-    // Fall back to seed data
-    this.players = [...seedPlayers];
-    this.games = [...seedGames];
-    this.gamePlayers = [...seedGamePlayers];
-    this.rsvps = [...seedRSVPs];
+    // Initialize empty (using Supabase for data)
+    this.players = [];
+    this.games = [];
+    this.gamePlayers = [];
+    this.rsvps = [];
     this.persist();
   }
 
@@ -187,10 +186,10 @@ class LocalStore {
     if (this.isClient) {
       localStorage.removeItem('pokerbros_data');
     }
-    this.players = [...seedPlayers];
-    this.games = [...seedGames];
-    this.gamePlayers = [...seedGamePlayers];
-    this.rsvps = [...seedRSVPs];
+    this.players = [];
+    this.games = [];
+    this.gamePlayers = [];
+    this.rsvps = [];
     this.persist();
     this.notify('players');
     this.notify('games');
