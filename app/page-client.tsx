@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
+import { useAuth } from '@/lib/auth-context';
 
 interface HomeClientProps {
   games: Game[];
@@ -16,6 +17,7 @@ interface HomeClientProps {
 }
 
 export default function HomeClient({ games, players, gamePlayers, rsvps }: HomeClientProps) {
+  const { isAdmin } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Helper function to get RSVP counts for a game
@@ -209,27 +211,33 @@ export default function HomeClient({ games, players, gamePlayers, rsvps }: HomeC
           <Card className="p-12 text-center">
             <p className="text-6xl mb-4">🎴</p>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Games Yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Get started by hosting your first poker night!</p>
-            <Button onClick={() => setShowCreateModal(true)}>
-              Host Your First Game
-            </Button>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              {isAdmin ? 'Get started by hosting your first poker night!' : 'Check back soon for upcoming games!'}
+            </p>
+            {isAdmin && (
+              <Button onClick={() => setShowCreateModal(true)}>
+                Host Your First Game
+              </Button>
+            )}
           </Card>
         )}
 
       </div>
       {/* End Content Container */}
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowCreateModal(true)}
-        className="fixed bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-poker-green hover:bg-green-700 dark:hover:bg-green-600 text-white rounded-full shadow-2xl hover:shadow-xl transition-all duration-200 z-30 hover:scale-105 font-semibold"
-        aria-label="Host New Game"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        <span>Host New Game</span>
-      </button>
+      {/* Floating Action Button - Admin Only */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="fixed bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-poker-green hover:bg-green-700 dark:hover:bg-green-600 text-white rounded-full shadow-2xl hover:shadow-xl transition-all duration-200 z-30 hover:scale-105 font-semibold"
+          aria-label="Host New Game"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Host New Game</span>
+        </button>
+      )}
 
       {/* Create Game Modal */}
       <CreateGameModal
