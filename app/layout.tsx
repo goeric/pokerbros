@@ -14,19 +14,11 @@ export const metadata: Metadata = {
     icon: '/favicon.svg',
     apple: '/favicon.svg',
   },
+  metadataBase: new URL('https://pokerbros.vercel.app'),
   openGraph: {
     title: 'PokerBros - Never Miss a Full Table',
     description: 'Manage your home poker games with real-time tracking and player statistics',
-    url: 'https://pokerbros.vercel.app',
     siteName: 'PokerBros',
-    images: [
-      {
-        url: '/og-image.svg',
-        width: 1200,
-        height: 630,
-        alt: 'PokerBros - Poker game management application',
-      },
-    ],
     locale: 'en_US',
     type: 'website',
   },
@@ -34,7 +26,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'PokerBros - Never Miss a Full Table',
     description: 'Manage your home poker games with real-time tracking and player statistics',
-    images: ['/og-image.svg'],
   },
 };
 
