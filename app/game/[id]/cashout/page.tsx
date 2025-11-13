@@ -4,11 +4,11 @@ import { Game, GamePlayer, Player } from '@/types';
 import CashOutClient from './page-client';
 
 interface CashOutPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function CashOutPage({ params }: CashOutPageProps) {
-  const gameId = params.id;
+  const { id: gameId } = await params;
   const cookieStore = await cookies();
 
   const supabase = createServerClient(

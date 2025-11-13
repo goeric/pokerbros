@@ -6,11 +6,11 @@ import LiveGameClient from './page-client';
 import { initializeGamePlayers } from './actions';
 
 interface LiveGamePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function LiveGamePage({ params }: LiveGamePageProps) {
-  const gameId = params.id;
+  const { id: gameId } = await params;
   const cookieStore = await cookies();
 
   const supabase = createServerClient(

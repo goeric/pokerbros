@@ -4,11 +4,11 @@ import { Game, GamePlayer, Player } from '@/types';
 import ResultsClient from './page-client';
 
 interface ResultsPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ResultsPage({ params }: ResultsPageProps) {
-  const gameId = params.id;
+  const { id: gameId } = await params;
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
