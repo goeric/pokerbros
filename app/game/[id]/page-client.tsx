@@ -197,25 +197,40 @@ export default function GameDetailClient({
             </Button>
           )}
 
-          {/* Edit/Delete - only for upcoming games that aren't live yet */}
-          {!gameShouldBeLive && game.status === 'upcoming' && isAdmin && (
+          {/* Edit - admins can edit upcoming and live games (not completed) */}
+          {game.status !== 'completed' && isAdmin && (
             <>
               <Button onClick={() => setShowEditModal(true)} variant="secondary" disabled={isPending}>
                 Edit Game
               </Button>
-              <Button onClick={handleDeleteGame} variant="danger" disabled={isPending}>
-                Delete Game
-              </Button>
+              {/* Delete - only for upcoming games that aren't live yet */}
+              {!gameShouldBeLive && game.status === 'upcoming' && (
+                <Button onClick={handleDeleteGame} variant="danger" disabled={isPending}>
+                  Delete Game
+                </Button>
+              )}
             </>
           )}
         </div>
       </Card>
 
-      {/* RSVP Section - only for upcoming games that aren't live yet */}
-      {!gameShouldBeLive && game.status === 'upcoming' && (
+      {/* RSVP Section - show for upcoming games, or for admins on live games */}
+      {((!gameShouldBeLive && game.status === 'upcoming') || (game.status !== 'completed' && isAdmin)) && (
         <>
+          {/* Warning banner for admins editing live games */}
+          {gameShouldBeLive && isAdmin && (
+            <div className="mb-6 bg-gradient-to-r from-amber-900/50 to-orange-900/50 border border-amber-700 rounded-lg p-4">
+              <p className="text-amber-400 font-bold flex items-center gap-2">
+                <span className="text-xl">⚠️</span>
+                Managing RSVPs for a live game - changes take effect immediately
+              </p>
+            </div>
+          )}
+
           <Card className="p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">RSVP</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+              RSVP {gameShouldBeLive && isAdmin && <span className="text-sm text-amber-400 ml-2">(Admin Only)</span>}
+            </h2>
 
             <div className="mb-6">
               <div className="flex items-center justify-between text-sm mb-3">
@@ -257,8 +272,8 @@ export default function GameDetailClient({
               </div>
             )}
 
-            {/* Non-admin players can RSVP themselves */}
-            {!isAdmin && user && canSelfRSVP && currentPlayer && (
+            {/* Non-admin players can RSVP themselves (only on upcoming games) */}
+            {!isAdmin && !gameShouldBeLive && user && canSelfRSVP && currentPlayer && (
               <Button
                 onClick={() => {
                   startTransition(async () => {
@@ -276,8 +291,8 @@ export default function GameDetailClient({
               </Button>
             )}
 
-            {/* Show message if player already RSVP'd */}
-            {!isAdmin && user && hasRSVPd && (
+            {/* Show message if player already RSVP'd (only on upcoming games) */}
+            {!isAdmin && !gameShouldBeLive && user && hasRSVPd && (
               <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-green-700 dark:text-green-400 text-center font-medium">
                   ✓ You're {hasRSVPd.status === 'confirmed' ? 'confirmed' : `#${hasRSVPd.waitlistPosition} on the waitlist`}
@@ -285,8 +300,8 @@ export default function GameDetailClient({
               </div>
             )}
 
-            {/* Show login prompt for non-authenticated users */}
-            {!isAdmin && !user && (
+            {/* Show login prompt for non-authenticated users (only on upcoming games) */}
+            {!isAdmin && !gameShouldBeLive && !user && (
               <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <p className="text-gray-700 dark:text-gray-300 text-center text-sm">
                   <a href="/login" className="text-poker-green hover:underline font-medium">Sign in</a> to RSVP for this game
