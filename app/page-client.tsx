@@ -30,7 +30,15 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
   // Calculate quick stats from real data
   const totalGamesHosted = games.length;
   const completedGames = games.filter(g => g.status === 'completed');
-  const totalMoneyPlayed = completedGames.reduce((sum, game) => sum + game.buyIn, 0);
+
+  // Calculate actual money played by summing all buy-ins from game_players
+  const completedGameIds = new Set(completedGames.map(g => g.id));
+  const completedGamePlayers = gamePlayers.filter(gp => completedGameIds.has(gp.gameId));
+  const totalMoneyPlayed = completedGamePlayers.reduce((sum, gp) => {
+    // Sum all buy-ins for this player (buyIns is an array)
+    const playerTotal = gp.buyIns.reduce((acc, buyIn) => acc + buyIn, 0);
+    return sum + playerTotal;
+  }, 0);
 
   // Find chip leader
   let chipLeader: { player: Player; profit: number } | null = null;
