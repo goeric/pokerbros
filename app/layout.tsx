@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-provider';
 import Navigation from '@/components/Navigation';
+import UnauthorizedUser from '@/components/UnauthorizedUser';
 import { getServerAuth } from '@/lib/auth-server';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -71,22 +72,29 @@ export default async function RootLayout({
       <body className={`${inter.className} bg-background-light dark:bg-background-dark transition-colors duration-300`}>
         <ThemeProvider>
           <AuthProvider>
-            {/* Pass server auth state directly to Navigation - no flash! */}
-            <Navigation
-              isAdmin={auth.isAdmin}
-              user={auth.user}
-              role={auth.role}
-            />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <footer className="bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-20 transition-colors duration-300">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <p className="text-center text-gray-600 dark:text-gray-400 text-sm">
-                  PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
-                </p>
-              </div>
-            </footer>
+            {/* Show unauthorized message if user is logged in but not a player or admin */}
+            {auth.isUnauthorized ? (
+              <UnauthorizedUser />
+            ) : (
+              <>
+                {/* Pass server auth state directly to Navigation - no flash! */}
+                <Navigation
+                  isAdmin={auth.isAdmin}
+                  user={auth.user}
+                  role={auth.role}
+                />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+                <footer className="bg-gray-100 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-20 transition-colors duration-300">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <p className="text-center text-gray-600 dark:text-gray-400 text-sm">
+                      PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
+                    </p>
+                  </div>
+                </footer>
+              </>
+            )}
           </AuthProvider>
         </ThemeProvider>
       </body>

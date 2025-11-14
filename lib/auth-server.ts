@@ -10,6 +10,8 @@ export interface ServerAuthResult {
   isSuperAdmin: boolean;
   role: UserRole | null;
   isViewer: boolean;
+  isPlayer: boolean;
+  isUnauthorized: boolean;
 }
 
 /**
@@ -58,6 +60,8 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
       isSuperAdmin: false,
       role: null,
       isViewer: false,
+      isPlayer: false,
+      isUnauthorized: false,
     };
   }
 
@@ -70,11 +74,26 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
 
   const role = adminUser?.role as UserRole | null;
 
+  // Check if user exists as a player
+  const { data: player } = await supabase
+    .from('players')
+    .select('id')
+    .eq('email', session.user.email)
+    .single();
+
+  const isPlayer = !!player;
+  const hasRole = !!role;
+
+  // User is unauthorized if they're logged in but have no role and are not a player
+  const isUnauthorized = !hasRole && !isPlayer;
+
   return {
     user: session.user,
     isAdmin: !!adminUser && (role === 'admin' || role === 'superadmin'),
     isSuperAdmin: role === 'superadmin',
     role,
     isViewer: role === 'viewer',
+    isPlayer,
+    isUnauthorized,
   };
 }
