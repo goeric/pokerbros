@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
+import { useAuth } from '@/lib/auth-context';
 
 interface ResultsClientProps {
   game: Game;
@@ -22,6 +23,7 @@ export default function ResultsClient({
   players,
 }: ResultsClientProps) {
   const router = useRouter();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     // Trigger confetti on load
@@ -190,6 +192,21 @@ export default function ResultsClient({
           Back to Dashboard
         </Button>
       </div>
+
+      {/* Admin Actions */}
+      {isAdmin && (
+        <Card className="p-6 mt-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Admin Actions</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Button onClick={() => router.push(`/game/${game.id}/live`)} variant="secondary" fullWidth>
+              Edit Player Results
+            </Button>
+            <Button onClick={() => router.push(`/game/${game.id}`)} variant="ghost" fullWidth>
+              Back to Game Details
+            </Button>
+          </div>
+        </Card>
+      )}
     </>
   );
 }
