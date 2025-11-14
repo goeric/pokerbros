@@ -37,7 +37,9 @@ export const GameSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format')
     .refine(
       (date) => {
-        const gameDate = new Date(date);
+        // Parse as local time to avoid timezone issues
+        const [year, month, day] = date.split('-').map(Number);
+        const gameDate = new Date(year, month - 1, day);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return gameDate >= today;

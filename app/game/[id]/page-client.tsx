@@ -260,9 +260,12 @@ export default function GameDetailClient({
             {/* Non-admin players can RSVP themselves */}
             {!isAdmin && user && canSelfRSVP && currentPlayer && (
               <Button
-                onClick={async () => {
+                onClick={() => {
                   startTransition(async () => {
-                    await addRSVP(game.id, currentPlayer.id);
+                    const result = await addRSVP(game.id, currentPlayer.id);
+                    if ('error' in result) {
+                      alert(result.error);
+                    }
                   });
                 }}
                 disabled={isPending}

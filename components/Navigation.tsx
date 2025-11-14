@@ -4,14 +4,16 @@ import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { UserRole } from '@/lib/auth-server';
 import ThemeToggle from './ThemeToggle';
 
 interface NavigationProps {
   isAdmin: boolean;
   user: User | null;
+  role: UserRole | null;
 }
 
-export default function Navigation({ isAdmin, user }: NavigationProps) {
+export default function Navigation({ isAdmin, user, role }: NavigationProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -38,13 +40,18 @@ export default function Navigation({ isAdmin, user }: NavigationProps) {
             >
               Statistics
             </Link>
-            {isAdmin && (
+            {role ? (
               <>
                 <Link
                   href="/admin"
-                  className="text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
+                  className="text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium flex items-center gap-2"
                 >
                   Admin
+                  {role === 'viewer' && (
+                    <span className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full">
+                      View Only
+                    </span>
+                  )}
                 </Link>
                 <button
                   onClick={handleSignOut}
@@ -53,8 +60,14 @@ export default function Navigation({ isAdmin, user }: NavigationProps) {
                   Sign Out
                 </button>
               </>
-            )}
-            {!isAdmin && !user && (
+            ) : user ? (
+              <button
+                onClick={handleSignOut}
+                className="text-gray-700 dark:text-gray-300 hover:text-poker-green dark:hover:text-white px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
+              >
+                Sign Out
+              </button>
+            ) : (
               <Link
                 href="/login"
                 className="text-gray-700 dark:text-gray-300 hover:text-poker-green dark:hover:text-white px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
