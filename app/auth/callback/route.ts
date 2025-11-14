@@ -1,23 +1,50 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const error = requestUrl.searchParams.get('error');
   const errorDescription = requestUrl.searchParams.get('error_description');
+  const state = requestUrl.searchParams.get('state');
 
-  console.log('[Callback] OAuth callback received:', {
+  logger.info('[Callback] OAuth callback received', {
     hasCode: !!code,
+    hasState: !!state,
     error,
     errorDescription,
-    fullUrl: requestUrl.toString(),
+    origin: request.headers.get('origin'),
+    referer: request.headers.get('referer'),
   });
+
+  // Validate origin to prevent CSRF attacks
+  const origin = request.headers.get('origin') || request.headers.get('referer');
+  const allowedOrigins = [
+    requestUrl.origin,
+    'http://localhost:3000',
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ].filter(Boolean);
+
+  // For OAuth callbacks, the origin might be from Google, so we check the referer contains our domain
+  const referer = request.headers.get('referer');
+  const isValidOrigin = referer?.includes(requestUrl.origin) || allowedOrigins.includes(origin || '');
+
+  if (!isValidOrigin && process.env.NODE_ENV === 'production') {
+    logger.error('[Callback] Invalid origin detected', {
+      origin,
+      referer,
+      allowed: allowedOrigins,
+    });
+    return NextResponse.redirect(
+      new URL('/login?error=invalid_origin', requestUrl.origin)
+    );
+  }
 
   // If OAuth provider returned an error
   if (error) {
-    console.error('[Callback] OAuth provider error:', { error, errorDescription });
+    logger.error('[Callback] OAuth provider error', { error, errorDescription });
     return NextResponse.redirect(
       new URL(`/login?error=${encodeURIComponent(error)}`, requestUrl.origin)
     );
@@ -25,7 +52,7 @@ export async function GET(request: Request) {
 
   // If no code, something went wrong
   if (!code) {
-    console.error('[Callback] No authorization code received');
+    logger.error('[Callback] No authorization code received');
     return NextResponse.redirect(
       new URL('/login?error=no_code', requestUrl.origin)
     );
@@ -48,7 +75,7 @@ export async function GET(request: Request) {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (e) {
-            console.log('[Callback] Could not set cookie on store:', e);
+            logger.debug('[Callback] Could not set cookie on store', e);
           }
           response.cookies.set({
             name,
@@ -62,7 +89,7 @@ export async function GET(request: Request) {
           try {
             cookieStore.delete(name);
           } catch (e) {
-            console.log('[Callback] Could not delete cookie from store:', e);
+            logger.debug('[Callback] Could not delete cookie from store', e);
           }
           response.cookies.set({
             name,
@@ -77,13 +104,13 @@ export async function GET(request: Request) {
     }
   );
 
-  console.log('[Callback] Exchanging code for session...');
+  logger.info('[Callback] Exchanging code for session');
 
   try {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
-      console.error('[Callback] Error exchanging code:', {
+      logger.error('[Callback] Error exchanging code', {
         message: error.message,
         status: error.status,
         name: error.name,
@@ -94,13 +121,13 @@ export async function GET(request: Request) {
     }
 
     if (!data.session) {
-      console.error('[Callback] No session returned after exchange');
+      logger.error('[Callback] No session returned after exchange');
       return NextResponse.redirect(
         new URL('/login?error=no_session', requestUrl.origin)
       );
     }
 
-    console.log('[Callback] Session created successfully:', {
+    logger.info('[Callback] Session created successfully', {
       userId: data.user.id,
       email: data.user.email,
       expiresAt: data.session.expires_at,
@@ -110,7 +137,7 @@ export async function GET(request: Request) {
     response = NextResponse.redirect(new URL('/admin', requestUrl.origin));
     return response;
   } catch (err) {
-    console.error('[Callback] Unexpected error:', err);
+    logger.error('[Callback] Unexpected error', err);
     return NextResponse.redirect(
       new URL('/login?error=unexpected', requestUrl.origin)
     );

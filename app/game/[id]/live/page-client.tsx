@@ -42,7 +42,7 @@ export default function LiveGameClient({
     if (confirm('Remove the last rebuy for this player?')) {
       startTransition(async () => {
         const result = await removeLastRebuy(game.id, gamePlayerId);
-        if (result.error) {
+        if ('error' in result) {
           alert(result.error);
         }
       });

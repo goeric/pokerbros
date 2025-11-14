@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { Game, RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
+import { logger } from '@/lib/logger';
 
 interface GamePageProps {
   params: Promise<{ id: string }>;
@@ -49,7 +50,7 @@ export default async function GameDetailPage({ params }: GamePageProps) {
   ]);
 
   // Debug logging
-  console.log('[Game Page] Query results:', {
+  logger.debug('[Game Page] Query results', {
     gameId,
     gameData: gameRes.data,
     gameError: gameRes.error,
@@ -65,7 +66,7 @@ export default async function GameDetailPage({ params }: GamePageProps) {
   }));
 
   if (!game) {
-    console.error('[Game Page] Game not found:', { gameId, error: gameRes.error });
+    logger.error('[Game Page] Game not found', { gameId, error: gameRes.error });
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
         <p className="text-gray-400">Game not found</p>

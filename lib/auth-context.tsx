@@ -43,6 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error: new Error('Supabase not configured') };
     }
 
+    // Note: Supabase already implements PKCE (Proof Key for Code Exchange)
+    // for OAuth flow security, which is more secure than state parameters.
+    // We also rely on server-side origin validation in the callback route.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

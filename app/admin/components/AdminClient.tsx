@@ -2,15 +2,18 @@
 
 import { useState, useTransition } from 'react';
 import { Player } from '@/types';
+import { UserRole } from '@/lib/auth-server';
 import Button from '@/components/Button';
 import PlayerModal from './PlayerModal';
 import { deletePlayer } from '../actions';
 
 interface AdminClientProps {
   initialPlayers: Player[];
+  canEdit: boolean;
+  userRole: UserRole | null;
 }
 
-export default function AdminClient({ initialPlayers }: AdminClientProps) {
+export default function AdminClient({ initialPlayers, canEdit, userRole }: AdminClientProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -32,7 +35,7 @@ export default function AdminClient({ initialPlayers }: AdminClientProps) {
 
     startTransition(async () => {
       const result = await deletePlayer(playerId);
-      if (result.error) {
+      if ('error' in result) {
         alert(`Error deleting player: ${result.error}`);
       }
     });
@@ -43,17 +46,21 @@ export default function AdminClient({ initialPlayers }: AdminClientProps) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Player Management</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Add and manage poker players</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {canEdit ? 'Add and manage poker players' : 'View poker players (read-only)'}
+          </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
-          + Add Player
-        </Button>
+        {canEdit && (
+          <Button onClick={() => handleOpenModal()}>
+            + Add Player
+          </Button>
+        )}
       </div>
 
       {initialPlayers.length === 0 ? (
         <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-12 text-center">
           <p className="text-gray-600 dark:text-gray-400 mb-4">No players yet</p>
-          <Button onClick={() => handleOpenModal()}>Add your first player</Button>
+          {canEdit && <Button onClick={() => handleOpenModal()}>Add your first player</Button>}
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -88,20 +95,26 @@ export default function AdminClient({ initialPlayers }: AdminClientProps) {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => handleOpenModal(player)}
-                          disabled={isPending}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4 disabled:opacity-50 font-medium"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(player.id)}
-                          disabled={isPending}
-                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50 font-medium"
-                        >
-                          Delete
-                        </button>
+                        {canEdit ? (
+                          <>
+                            <button
+                              onClick={() => handleOpenModal(player)}
+                              disabled={isPending}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4 disabled:opacity-50 font-medium"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(player.id)}
+                              disabled={isPending}
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50 font-medium"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-600">-</span>
+                        )}
                       </td>
                     </tr>
                   );
