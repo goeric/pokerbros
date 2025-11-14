@@ -7,17 +7,16 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
-import { useAuth } from '@/lib/auth-context';
 
 interface HomeClientProps {
   games: Game[];
   players: Player[];
   gamePlayers: GamePlayer[];
   rsvps: RSVP[];
+  isAdmin: boolean;
 }
 
-export default function HomeClient({ games, players, gamePlayers, rsvps }: HomeClientProps) {
-  const { isAdmin } = useAuth();
+export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin }: HomeClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Helper function to get RSVP counts for a game

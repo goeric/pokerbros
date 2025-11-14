@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import LiveGameClient from './page-client';
 import { initializeGamePlayers } from './actions';
+import { getServerAuth } from '@/lib/auth-server';
 
 interface LiveGamePageProps {
   params: Promise<{ id: string }>;
@@ -12,6 +13,9 @@ interface LiveGamePageProps {
 export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const { id: gameId } = await params;
   const cookieStore = await cookies();
+
+  // Get admin status server-side
+  const { isAdmin } = await getServerAuth();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -89,6 +93,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
         game={game}
         initialGamePlayers={gamePlayers}
         players={players}
+        isAdmin={isAdmin}
       />
     </div>
   );

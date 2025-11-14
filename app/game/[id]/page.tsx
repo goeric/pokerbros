@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { Game, RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
+import { getServerAuth } from '@/lib/auth-server';
 
 interface GamePageProps {
   params: Promise<{ id: string }>;
@@ -10,6 +11,9 @@ interface GamePageProps {
 export default async function GameDetailPage({ params }: GamePageProps) {
   const { id: gameId } = await params;
   const cookieStore = await cookies();
+
+  // Get auth state server-side
+  const { user, isAdmin } = await getServerAuth();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,6 +82,8 @@ export default async function GameDetailPage({ params }: GamePageProps) {
         game={game}
         initialRSVPs={rsvps}
         players={players}
+        user={user}
+        isAdmin={isAdmin}
       />
     </div>
   );

@@ -8,22 +8,22 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
-import { useAuth } from '@/lib/auth-context';
 import { addRebuy } from './actions';
 
 interface LiveGameClientProps {
   game: Game;
   initialGamePlayers: GamePlayer[];
   players: Player[];
+  isAdmin: boolean;
 }
 
 export default function LiveGameClient({
   game,
   initialGamePlayers,
   players,
+  isAdmin,
 }: LiveGameClientProps) {
   const router = useRouter();
-  const { isAdmin } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [coinAnimation, setCoinAnimation] = useState<string | null>(null);
 

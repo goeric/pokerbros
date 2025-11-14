@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { Game, GamePlayer, Player } from '@/types';
 import ResultsClient from './page-client';
+import { getServerAuth } from '@/lib/auth-server';
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>;
@@ -10,6 +11,9 @@ interface ResultsPageProps {
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const { id: gameId } = await params;
   const cookieStore = await cookies();
+
+  // Get admin status server-side
+  const { isAdmin } = await getServerAuth();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,6 +77,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
         game={game}
         gamePlayers={gamePlayers}
         players={players}
+        isAdmin={isAdmin}
       />
     </div>
   );

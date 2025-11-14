@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-provider';
 import Navigation from '@/components/Navigation';
+import { getServerAuth } from '@/lib/auth-server';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -38,11 +39,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Fetch auth state on the server - no client-side delay!
+  const auth = await getServerAuth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -67,7 +71,11 @@ export default function RootLayout({
       <body className={`${inter.className} bg-background-light dark:bg-background-dark transition-colors duration-300`}>
         <ThemeProvider>
           <AuthProvider>
-            <Navigation />
+            {/* Pass server auth state directly to Navigation - no flash! */}
+            <Navigation
+              isAdmin={auth.isAdmin}
+              user={auth.user}
+            />
             <main className="min-h-screen">
               {children}
             </main>
