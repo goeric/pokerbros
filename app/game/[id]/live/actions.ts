@@ -33,6 +33,8 @@ async function createSupabaseServerClient() {
   );
 }
 
+// Note: This function is no longer used - initialization happens inline in page.tsx
+// Kept here for reference or potential future use
 export async function initializeGamePlayers(gameId: string) {
   const supabase = await createSupabaseServerClient();
 
@@ -83,9 +85,11 @@ export async function initializeGamePlayers(gameId: string) {
     if (error) {
       return { error: error.message };
     }
+
+    // Only revalidate if we actually added players
+    revalidatePath(`/game/${gameId}/live`);
   }
 
-  revalidatePath(`/game/${gameId}/live`);
   return { success: true, addedPlayers: newRsvps.length };
 }
 
