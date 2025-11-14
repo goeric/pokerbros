@@ -75,6 +75,7 @@ export default async function RootLayout({
             <Navigation
               isAdmin={auth.isAdmin}
               user={auth.user}
+              role={auth.role}
             />
             <main className="min-h-screen">
               {children}

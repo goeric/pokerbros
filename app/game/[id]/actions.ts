@@ -8,8 +8,33 @@ export async function addRSVP(gameId: string, playerId: string) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    // ✅ Authorization check
-    await requireAdmin(supabase);
+    // ✅ Authorization check - Allow admins OR users RSVPing for themselves
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Unauthorized: Please sign in');
+    }
+
+    // Check if user is admin OR if they're RSVPing for themselves
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('id', session.user.id)
+      .single();
+
+    const isAdmin = !!adminUser;
+
+    // If not admin, verify they're RSVPing for their own player account
+    if (!isAdmin) {
+      const { data: player } = await supabase
+        .from('players')
+        .select('email')
+        .eq('id', playerId)
+        .single();
+
+      if (!player || player.email !== session.user.email) {
+        throw new Error('Unauthorized: You can only RSVP for yourself');
+      }
+    }
 
     // ✅ Input validation
     const result = RSVPSchema.safeParse({ gameId, playerId });
@@ -51,8 +76,33 @@ export async function cancelRSVP(gameId: string, playerId: string) {
   try {
     const supabase = await createSupabaseServerClient();
 
-    // ✅ Authorization check
-    await requireAdmin(supabase);
+    // ✅ Authorization check - Allow admins OR users canceling their own RSVP
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Unauthorized: Please sign in');
+    }
+
+    // Check if user is admin OR if they're canceling their own RSVP
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('id')
+      .eq('id', session.user.id)
+      .single();
+
+    const isAdmin = !!adminUser;
+
+    // If not admin, verify they're canceling their own RSVP
+    if (!isAdmin) {
+      const { data: player } = await supabase
+        .from('players')
+        .select('email')
+        .eq('id', playerId)
+        .single();
+
+      if (!player || player.email !== session.user.email) {
+        throw new Error('Unauthorized: You can only cancel your own RSVP');
+      }
+    }
 
     // ✅ Input validation
     const result = RSVPSchema.safeParse({ gameId, playerId });
