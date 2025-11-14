@@ -121,3 +121,38 @@ export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount
   revalidatePath(`/game/${gameId}/live`);
   return { success: true };
 }
+
+export async function removeLastRebuy(gameId: string, gamePlayerId: string) {
+  const supabase = await createSupabaseServerClient();
+
+  // Get current buy-ins
+  const { data: gamePlayer } = await supabase
+    .from('game_players')
+    .select('buyIns')
+    .eq('id', gamePlayerId)
+    .single();
+
+  if (!gamePlayer) {
+    return { error: 'Game player not found' };
+  }
+
+  // Must have at least 2 buy-ins (can't remove the initial buy-in)
+  if (gamePlayer.buyIns.length <= 1) {
+    return { error: 'Cannot remove initial buy-in' };
+  }
+
+  // Remove the last buy-in
+  const updatedBuyIns = gamePlayer.buyIns.slice(0, -1);
+
+  const { error } = await supabase
+    .from('game_players')
+    .update({ buyIns: updatedBuyIns })
+    .eq('id', gamePlayerId);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath(`/game/${gameId}/live`);
+  return { success: true };
+}
