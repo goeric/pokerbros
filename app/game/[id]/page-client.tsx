@@ -51,7 +51,7 @@ export default function GameDetailClient({
 
     startTransition(async () => {
       const result = await cancelRSVP(game.id, playerId);
-      if (result.error) {
+      if ('error' in result) {
         alert(result.error);
       }
     });
@@ -79,7 +79,7 @@ export default function GameDetailClient({
     startTransition(async () => {
       const result = await updateGame(game.id, formData);
 
-      if (result.error) {
+      if ('error' in result) {
         alert('Failed to update game. Please try again.');
         return;
       }

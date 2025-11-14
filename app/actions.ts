@@ -1,38 +1,8 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
-}
+import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
+import { GameSchema, formatZodError } from '@/lib/validation';
 
 export async function createGame(gameData: {
   date: string;
@@ -41,26 +11,42 @@ export async function createGame(gameData: {
   venue: string;
   notes: string;
 }) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from('games')
-    .insert({
-      date: gameData.date,
-      time: gameData.time,
-      buyIn: gameData.buyIn,
-      venue: gameData.venue,
-      status: 'upcoming',
-      notes: gameData.notes || null,
-      createdAt: new Date().toISOString(),
-    })
-    .select()
-    .single();
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  if (error) {
-    return { error: error.message };
+    // ✅ Input validation
+    const result = GameSchema.safeParse(gameData);
+
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
+
+    const validData = result.data;
+
+    const { data, error } = await supabase
+      .from('games')
+      .insert({
+        date: validData.date,
+        time: validData.time,
+        buyIn: validData.buyIn,
+        venue: validData.venue,
+        status: 'upcoming',
+        notes: validData.notes || null,
+        createdAt: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return handleServerError(error, 'ERR_GAME_CREATE', 'Failed to create game. Please try again.');
+    }
+
+    revalidatePath('/');
+    return { success: true, data };
+  } catch (error) {
+    return handleServerError(error, 'ERR_GAME_CREATE_AUTH');
   }
-
-  revalidatePath('/');
-  return { success: true, data };
 }

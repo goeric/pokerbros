@@ -58,7 +58,7 @@ export default function CashOutClient({
 
     startTransition(async () => {
       const result = await finalizeGameResults(game.id, cashOuts);
-      if (result?.error) {
+      if (result && 'error' in result) {
         alert(result.error);
       }
     });

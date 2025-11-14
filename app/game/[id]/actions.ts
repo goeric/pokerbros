@@ -1,166 +1,169 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
-}
+import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
+import { RSVPSchema, GameSchema, formatZodError } from '@/lib/validation';
 
 export async function addRSVP(gameId: string, playerId: string) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  // Get current RSVPs to determine status
-  const { data: rsvps } = await supabase
-    .from('rsvps')
-    .select('*')
-    .eq('gameId', gameId);
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  const confirmedCount = rsvps?.filter(r => r.status === 'confirmed').length || 0;
-  const status = confirmedCount >= 8 ? 'waitlist' : 'confirmed';
-  const waitlistPosition = status === 'waitlist'
-    ? (rsvps?.filter(r => r.status === 'waitlist').length || 0) + 1
-    : null;
+    // ✅ Input validation
+    const result = RSVPSchema.safeParse({ gameId, playerId });
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
 
-  const { error } = await supabase.from('rsvps').insert({
-    gameId,
-    playerId,
-    status,
-    waitlistPosition,
-    timestamp: new Date().toISOString(),
-  });
+    // Get current RSVPs to determine status
+    const { data: rsvps } = await supabase
+      .from('rsvps')
+      .select('*')
+      .eq('gameId', gameId);
 
-  if (error) {
-    return { error: error.message };
+    const confirmedCount = rsvps?.filter((r) => r.status === 'confirmed').length || 0;
+    const status = confirmedCount >= 8 ? 'waitlist' : 'confirmed';
+    const waitlistPosition =
+      status === 'waitlist' ? (rsvps?.filter((r) => r.status === 'waitlist').length || 0) + 1 : null;
+
+    const { error } = await supabase.from('rsvps').insert({
+      gameId,
+      playerId,
+      status,
+      waitlistPosition,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (error) {
+      return handleServerError(error, 'ERR_RSVP_ADD', 'Failed to add RSVP. Please try again.');
+    }
+
+    revalidatePath(`/game/${gameId}`);
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_RSVP_ADD_AUTH');
   }
-
-  revalidatePath(`/game/${gameId}`);
-  return { success: true };
 }
 
 export async function cancelRSVP(gameId: string, playerId: string) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  // Get the RSVP to check status
-  const { data: rsvp } = await supabase
-    .from('rsvps')
-    .select('*')
-    .eq('gameId', gameId)
-    .eq('playerId', playerId)
-    .single();
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  // Delete the RSVP
-  const { error } = await supabase
-    .from('rsvps')
-    .delete()
-    .eq('gameId', gameId)
-    .eq('playerId', playerId);
+    // ✅ Input validation
+    const result = RSVPSchema.safeParse({ gameId, playerId });
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  // Auto-promote first waitlist player if a confirmed spot opened
-  if (rsvp?.status === 'confirmed') {
-    const { data: waitlist } = await supabase
+    // Get the RSVP to check status
+    const { data: rsvp } = await supabase
       .from('rsvps')
       .select('*')
       .eq('gameId', gameId)
-      .eq('status', 'waitlist')
-      .order('waitlistPosition', { ascending: true })
-      .limit(1);
+      .eq('playerId', playerId)
+      .single();
 
-    if (waitlist && waitlist.length > 0) {
-      await supabase
-        .from('rsvps')
-        .update({ status: 'confirmed', waitlistPosition: null })
-        .eq('id', waitlist[0].id);
+    // Delete the RSVP
+    const { error } = await supabase.from('rsvps').delete().eq('gameId', gameId).eq('playerId', playerId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_RSVP_CANCEL', 'Failed to cancel RSVP. Please try again.');
     }
-  }
 
-  revalidatePath(`/game/${gameId}`);
-  return { success: true };
+    // Auto-promote first waitlist player if a confirmed spot opened
+    // Use database function for atomic operation to prevent race conditions
+    if (rsvp?.status === 'confirmed') {
+      await supabase.rpc('promote_next_waitlist_player', { p_game_id: gameId });
+    }
+
+    revalidatePath(`/game/${gameId}`);
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_RSVP_CANCEL_AUTH');
+  }
 }
 
 export async function startGame(gameId: string) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase
-    .from('games')
-    .update({ status: 'in_progress' })
-    .eq('id', gameId);
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  if (error) {
-    return { error: error.message };
+    const { error } = await supabase.from('games').update({ status: 'in_progress' }).eq('id', gameId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_GAME_START', 'Failed to start game. Please try again.');
+    }
+
+    revalidatePath(`/game/${gameId}`);
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_GAME_START_AUTH');
   }
-
-  revalidatePath(`/game/${gameId}`);
-  return { success: true };
 }
 
 export async function updateGame(
   gameId: string,
   gameData: { date: string; time: string; buyIn: number; venue: string; notes: string }
 ) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase
-    .from('games')
-    .update({
-      date: gameData.date,
-      time: gameData.time,
-      buyIn: gameData.buyIn,
-      venue: gameData.venue,
-      notes: gameData.notes || null,
-    })
-    .eq('id', gameId);
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  if (error) {
-    return { error: error.message };
+    // ✅ Input validation
+    const result = GameSchema.safeParse(gameData);
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
+
+    const validData = result.data;
+
+    const { error } = await supabase
+      .from('games')
+      .update({
+        date: validData.date,
+        time: validData.time,
+        buyIn: validData.buyIn,
+        venue: validData.venue,
+        notes: validData.notes || null,
+      })
+      .eq('id', gameId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_GAME_UPDATE', 'Failed to update game. Please try again.');
+    }
+
+    revalidatePath(`/game/${gameId}`);
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_GAME_UPDATE_AUTH');
   }
-
-  revalidatePath(`/game/${gameId}`);
-  return { success: true };
 }
 
 export async function deleteGame(gameId: string) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase
-    .from('games')
-    .delete()
-    .eq('id', gameId);
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  if (error) {
-    return { error: error.message };
+    const { error } = await supabase.from('games').delete().eq('id', gameId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_GAME_DELETE', 'Failed to delete game. Please try again.');
+    }
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_GAME_DELETE_AUTH');
   }
-
-  revalidatePath('/');
-  return { success: true };
 }

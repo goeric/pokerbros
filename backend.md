@@ -19,8 +19,9 @@ This document provides comprehensive documentation of the PokerBros backend arch
 
 - **Database**: PostgreSQL 17 (via Supabase)
 - **Authentication**: Supabase Auth with Google OAuth 2.0
-- **Frontend**: Next.js 14+ with App Router and Server Components
+- **Frontend**: Next.js 16 with App Router and Server Components
 - **Rendering**: Server-Side Rendering (SSR) with Server Actions
+- **Auth Pattern**: Server-first architecture (auth state passed as props)
 - **API**: Supabase PostgREST (auto-generated REST API)
 - **Local Development**: Supabase CLI with Docker
 - **Migrations**: SQL migration files in `supabase/migrations/`
@@ -298,27 +299,57 @@ export const supabase = createBrowserClient(
 );
 ```
 
-**Server-Side:**
+**Server-Side (Auth Helper):**
 ```typescript
-// app/auth/callback/route.ts
+// lib/auth-server.ts
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      get: (name) => cookies().get(name)?.value,
-      set: (name, value, options) => {
-        cookies().set({ name, value, ...options });
+export async function getServerAuth() {
+  const cookieStore = await cookies(); // Next.js 16 requires await
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get: (name) => cookieStore.get(name)?.value,
+        set: (name, value, options) => {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // Ignore errors in read-only Server Components
+          }
+        },
+        remove: (name, options) => {
+          try {
+            cookieStore.delete(name);
+          } catch (error) {
+            // Ignore errors in read-only Server Components
+          }
+        },
       },
-      remove: (name, options) => {
-        cookies().delete(name);
-      },
-    },
+    }
+  );
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    return { user: null, isAdmin: false, isSuperAdmin: false };
   }
-);
+
+  const { data: adminUser } = await supabase
+    .from('admin_users')
+    .select('*')
+    .eq('id', session.user.id)
+    .single();
+
+  return {
+    user: session.user,
+    isAdmin: !!adminUser,
+    isSuperAdmin: adminUser?.is_superadmin ?? false,
+  };
+}
 ```
 
 ### Authorization Flow

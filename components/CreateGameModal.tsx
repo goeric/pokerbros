@@ -18,7 +18,7 @@ export default function CreateGameModal({ isOpen, onClose }: CreateGameModalProp
     startTransition(async () => {
       const result = await createGame(formData);
 
-      if (result.error) {
+      if ('error' in result) {
         alert('Failed to create game. Please try again.');
         return;
       }

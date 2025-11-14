@@ -2,9 +2,14 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { Player } from '@/types';
 import AdminClient from './components/AdminClient';
+import { logger } from '@/lib/logger';
+import { getServerAuth } from '@/lib/auth-server';
 
 // This is a Server Component - it runs on the server and fetches data before rendering
 export default async function AdminPage() {
+  // Get auth state including role
+  const { isAdmin, role } = await getServerAuth();
+
   // Create Supabase server client
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -40,12 +45,12 @@ export default async function AdminPage() {
     .order('createdAt', { ascending: false });
 
   if (error) {
-    console.error('Error fetching players:', error);
+    logger.error('Error fetching players', error);
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <AdminClient initialPlayers={players || []} />
+      <AdminClient initialPlayers={players || []} canEdit={isAdmin} userRole={role} />
     </div>
   );
 }

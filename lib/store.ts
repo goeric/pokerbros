@@ -1,4 +1,5 @@
 import { Player, Game, GamePlayer, RSVP } from '@/types';
+import { logger } from './logger';
 
 // In-memory store for local development (falls back when Supabase not configured)
 class LocalStore {
@@ -26,7 +27,7 @@ class LocalStore {
           this.rsvps = data.rsvps || [];
           return;
         } catch (e) {
-          console.error('Failed to parse stored data:', e);
+          logger.error('Failed to parse stored data', e);
         }
       }
     }
@@ -49,7 +50,7 @@ class LocalStore {
           rsvps: this.rsvps,
         }));
       } catch (e) {
-        console.error('Failed to persist data:', e);
+        logger.error('Failed to persist data', e);
       }
     }
   }

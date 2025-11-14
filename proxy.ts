@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export async function proxy(req: NextRequest) {
   // Only protect admin routes
@@ -7,7 +8,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  console.log('[Proxy] Checking admin route:', req.nextUrl.pathname);
+  logger.info('[Proxy] Checking admin route', { pathname: req.nextUrl.pathname });
 
   const response = NextResponse.next({
     request: {
@@ -45,7 +46,7 @@ export async function proxy(req: NextRequest) {
     // Get the current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    console.log('[Proxy] Session check:', {
+    logger.debug('[Proxy] Session check', {
       hasSession: !!session,
       sessionError: sessionError?.message,
       userId: session?.user?.id,
@@ -54,7 +55,7 @@ export async function proxy(req: NextRequest) {
 
     // No session - redirect to login
     if (!session) {
-      console.log('[Proxy] No session found, redirecting to login');
+      logger.info('[Proxy] No session found, redirecting to login');
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
@@ -65,7 +66,7 @@ export async function proxy(req: NextRequest) {
       .eq('id', session.user.id)
       .single();
 
-    console.log('[Proxy] Admin check:', {
+    logger.debug('[Proxy] Admin check', {
       isAdmin: !!adminUser,
       isSuperAdmin: adminUser?.is_superadmin,
       error: adminError?.message,
@@ -73,15 +74,15 @@ export async function proxy(req: NextRequest) {
 
     // Not an admin - redirect to home
     if (adminError || !adminUser) {
-      console.log('[Proxy] User is not an admin, redirecting to home');
+      logger.warn('[Proxy] User is not an admin, redirecting to home');
       return NextResponse.redirect(new URL('/', req.url));
     }
 
     // User is authenticated and is admin - allow access
-    console.log('[Proxy] Admin access granted');
+    logger.info('[Proxy] Admin access granted');
     return response;
   } catch (error) {
-    console.error('[Proxy] Unexpected error:', error);
+    logger.error('[Proxy] Unexpected error', error);
     return NextResponse.redirect(new URL('/login', req.url));
   }
 }

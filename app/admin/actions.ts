@@ -1,56 +1,33 @@
 'use server';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
-
-// Helper to create Supabase server client
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore cookie errors in server actions
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore cookie errors in server actions
-          }
-        },
-      },
-    }
-  );
-}
+import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
+import { PlayerSchema, formatZodError } from '@/lib/validation';
 
 export async function createPlayer(formData: FormData) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const first_name = formData.get('first_name') as string;
-  const last_name = formData.get('last_name') as string;
-  const nickname = formData.get('nickname') as string;
-  const email = formData.get('email') as string;
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  const { error } = await supabase
-    .from('players')
-    .insert({
-      first_name,
-      last_name,
-      nickname: nickname || null,
-      email,
+    // ✅ Input validation
+    const result = PlayerSchema.safeParse({
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      nickname: formData.get('nickname'),
+      email: formData.get('email'),
+    });
+
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
+
+    const validData = result.data;
+
+    const { error } = await supabase.from('players').insert({
+      ...validData,
+      nickname: validData.nickname || null,
       totalIn: 0,
       totalOut: 0,
       gamesPlayed: 0,
@@ -58,55 +35,73 @@ export async function createPlayer(formData: FormData) {
       biggestLoss: 0,
     });
 
-  if (error) {
-    console.error('Error creating player:', error);
-    return { error: error.message };
-  }
+    if (error) {
+      return handleServerError(error, 'ERR_PLAYER_CREATE', 'Failed to create player. Please try again.');
+    }
 
-  revalidatePath('/admin');
-  return { success: true };
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_PLAYER_CREATE_AUTH');
+  }
 }
 
 export async function updatePlayer(playerId: string, formData: FormData) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const first_name = formData.get('first_name') as string;
-  const last_name = formData.get('last_name') as string;
-  const nickname = formData.get('nickname') as string;
-  const email = formData.get('email') as string;
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  const { error } = await supabase
-    .from('players')
-    .update({
-      first_name,
-      last_name,
-      nickname: nickname || null,
-      email,
-    })
-    .eq('id', playerId);
+    // ✅ Input validation
+    const result = PlayerSchema.safeParse({
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      nickname: formData.get('nickname'),
+      email: formData.get('email'),
+    });
 
-  if (error) {
-    console.error('Error updating player:', error);
-    return { error: error.message };
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
+
+    const validData = result.data;
+
+    const { error } = await supabase
+      .from('players')
+      .update({
+        ...validData,
+        nickname: validData.nickname || null,
+      })
+      .eq('id', playerId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_PLAYER_UPDATE', 'Failed to update player. Please try again.');
+    }
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_PLAYER_UPDATE_AUTH');
   }
-
-  revalidatePath('/admin');
-  return { success: true };
 }
 
 export async function deletePlayer(playerId: string) {
-  const supabase = await createSupabaseServerClient();
+  try {
+    const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase
-    .from('players')
-    .delete()
-    .eq('id', playerId);
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
-  if (error) {
-    console.error('Error deleting player:', error);
-    return { error: error.message };
+    const { error } = await supabase.from('players').delete().eq('id', playerId);
+
+    if (error) {
+      return handleServerError(error, 'ERR_PLAYER_DELETE', 'Failed to delete player. Please try again.');
+    }
+
+    revalidatePath('/admin');
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_PLAYER_DELETE_AUTH');
   }
-
-  revalidatePath('/admin');
-  return { success: true };
 }

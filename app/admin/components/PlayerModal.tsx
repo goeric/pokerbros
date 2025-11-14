@@ -31,7 +31,7 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
           result = await createPlayer(formData);
         }
 
-        if (result.error) {
+        if ('error' in result) {
           setError(result.error);
         } else {
           onClose();
