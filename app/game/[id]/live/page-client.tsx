@@ -8,7 +8,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
-import { addRebuy } from './actions';
+import { addRebuy, removeLastRebuy } from './actions';
 
 interface LiveGameClientProps {
   game: Game;
@@ -36,6 +36,17 @@ export default function LiveGameClient({
     startTransition(async () => {
       await addRebuy(game.id, gamePlayerId, game.buyIn);
     });
+  };
+
+  const handleRemoveRebuy = async (gamePlayerId: string) => {
+    if (confirm('Remove the last rebuy for this player?')) {
+      startTransition(async () => {
+        const result = await removeLastRebuy(game.id, gamePlayerId);
+        if (result.error) {
+          alert(result.error);
+        }
+      });
+    }
   };
 
   const handleEndGame = () => {
@@ -149,16 +160,30 @@ export default function LiveGameClient({
               </div>
 
               {isAdmin && (
-                <Button
-                  onClick={() => handleAddRebuy(gamePlayer.id)}
-                  variant="secondary"
-                  fullWidth
-                  disabled={isPending}
-                  className="flex items-center justify-center gap-2"
-                >
-                  <ChipIcon className="w-5 h-5" />
-                  Add Rebuy +{formatCurrency(game.buyIn)}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => handleAddRebuy(gamePlayer.id)}
+                    variant="secondary"
+                    fullWidth
+                    disabled={isPending}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <ChipIcon className="w-5 h-5" />
+                    Add Rebuy +{formatCurrency(game.buyIn)}
+                  </Button>
+                  {rebuyCount > 0 && (
+                    <Button
+                      onClick={() => handleRemoveRebuy(gamePlayer.id)}
+                      variant="ghost"
+                      fullWidth
+                      disabled={isPending}
+                      className="flex items-center justify-center gap-2 text-sm"
+                    >
+                      <span className="text-red-600 dark:text-red-400">✕</span>
+                      Remove Last Rebuy
+                    </Button>
+                  )}
+                </div>
               )}
             </Card>
           );
