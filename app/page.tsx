@@ -2,9 +2,14 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
 import HomeClient from './page-client';
+import { getServerAuth } from '@/lib/auth-server';
 
 export default async function HomePage() {
   const cookieStore = await cookies();
+
+  // Get admin status server-side
+  const { isAdmin } = await getServerAuth();
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -45,6 +50,6 @@ export default async function HomePage() {
   const rsvps: RSVP[] = rsvpsRes.data || [];
 
   return (
-    <HomeClient games={games} players={players} gamePlayers={gamePlayers} rsvps={rsvps} />
+    <HomeClient games={games} players={players} gamePlayers={gamePlayers} rsvps={rsvps} isAdmin={isAdmin} />
   );
 }

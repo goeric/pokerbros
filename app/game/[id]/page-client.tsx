@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { User } from '@supabase/supabase-js';
 import { Game, RSVP, Player } from '@/types';
 import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isToday } from '@/lib/utils';
 import Card from '@/components/Card';
@@ -10,7 +11,6 @@ import Badge from '@/components/Badge';
 import SeatIndicator from '@/components/SeatIndicator';
 import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
-import { useAuth } from '@/lib/auth-context';
 import GameFormModal from '@/components/GameFormModal';
 import { addRSVP, cancelRSVP, startGame, updateGame, deleteGame } from './actions';
 
@@ -18,15 +18,18 @@ interface GameDetailClientProps {
   game: Game;
   initialRSVPs: RSVP[];
   players: Player[];
+  user: User | null;
+  isAdmin: boolean;
 }
 
 export default function GameDetailClient({
   game,
   initialRSVPs,
   players,
+  user,
+  isAdmin,
 }: GameDetailClientProps) {
   const router = useRouter();
-  const { user, isAdmin } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [showPromotion, setShowPromotion] = useState(false);

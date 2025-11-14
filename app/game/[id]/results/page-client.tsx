@@ -9,21 +9,21 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
-import { useAuth } from '@/lib/auth-context';
 
 interface ResultsClientProps {
   game: Game;
   gamePlayers: GamePlayer[];
   players: Player[];
+  isAdmin: boolean;
 }
 
 export default function ResultsClient({
   game,
   gamePlayers,
   players,
+  isAdmin,
 }: ResultsClientProps) {
   const router = useRouter();
-  const { isAdmin } = useAuth();
 
   useEffect(() => {
     // Trigger confetti on load

@@ -1,10 +1,9 @@
-'use client';
-
-import { useAuth } from '@/lib/auth-context';
+import { getServerAuth } from '@/lib/auth-server';
 import Card from '@/components/Card';
 
-export default function DebugAuthPage() {
-  const { user, adminUser, isAdmin, isSuperAdmin, loading } = useAuth();
+export default async function DebugAuthPage() {
+  // Fetch auth state server-side
+  const { user, isAdmin, isSuperAdmin } = await getServerAuth();
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -13,7 +12,7 @@ export default function DebugAuthPage() {
 
         <div className="space-y-4 text-white">
           <div>
-            <strong>Loading:</strong> {loading ? 'Yes' : 'No'}
+            <strong>Rendering Mode:</strong> Server Component (SSR)
           </div>
 
           <div>
@@ -32,21 +31,6 @@ export default function DebugAuthPage() {
           )}
 
           <div>
-            <strong>Admin User Found:</strong> {adminUser ? 'Yes' : 'No'}
-          </div>
-
-          {adminUser && (
-            <>
-              <div>
-                <strong>Admin Email:</strong> {adminUser.email}
-              </div>
-              <div>
-                <strong>Is Superadmin:</strong> {adminUser.is_superadmin ? 'Yes' : 'No'}
-              </div>
-            </>
-          )}
-
-          <div>
             <strong>isAdmin Status:</strong> {isAdmin ? 'Yes' : 'No'}
           </div>
 
@@ -57,7 +41,7 @@ export default function DebugAuthPage() {
           <div className="mt-6 p-4 bg-gray-700 rounded">
             <strong>Raw Data:</strong>
             <pre className="mt-2 text-xs overflow-auto">
-              {JSON.stringify({ user, adminUser, isAdmin, isSuperAdmin }, null, 2)}
+              {JSON.stringify({ user, isAdmin, isSuperAdmin }, null, 2)}
             </pre>
           </div>
         </div>

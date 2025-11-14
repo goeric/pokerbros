@@ -1,22 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import Card from '@/components/Card';
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { signInWithGoogle, isAdmin, loading: authLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // Wait for auth to finish loading, then redirect if already admin
-    if (!authLoading && isAdmin) {
-      router.push('/admin');
-    }
-  }, [isAdmin, authLoading, router]);
+  const { signInWithGoogle } = useAuth();
 
   const handleGoogleSignIn = async () => {
     setError(null);
