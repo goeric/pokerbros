@@ -69,20 +69,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []); // Empty dependency array - only run once on mount
 
   const fetchAdminUser = async (userId: string) => {
-    // For admin users, the middleware already validates their admin status
-    // We just need to set a placeholder admin user object
-    // The actual admin check happens server-side in middleware
-    console.log('[Auth] User authenticated, trusting middleware for admin validation');
+    try {
+      console.log('[Auth] Fetching admin user data for:', userId);
 
-    // Set a minimal admin user object - actual data comes from middleware
-    setAdminUser({
-      id: userId,
-      email: user?.email || '',
-      is_superadmin: false, // Will be determined by middleware
-      created_at: new Date().toISOString(),
-    } as AdminUser);
+      if (!supabase) {
+        setAdminUser(null);
+        setLoading(false);
+        return;
+      }
 
-    setLoading(false);
+      // Query the admin_users table to check if this user is actually an admin
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.log('[Auth] User is not an admin:', error.message);
+        setAdminUser(null);
+      } else {
+        console.log('[Auth] User is an admin:', data);
+        setAdminUser(data);
+      }
+    } catch (error) {
+      console.error('[Auth] Error fetching admin user:', error);
+      setAdminUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
