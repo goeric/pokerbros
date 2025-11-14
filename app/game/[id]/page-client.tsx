@@ -396,9 +396,35 @@ export default function GameDetailClient({
           <p className="text-gray-600 dark:text-gray-400 mb-6">
             This game has ended. View the final results and player performance.
           </p>
-          <Button onClick={() => router.push(`/game/${game.id}/results`)} variant="primary">
-            View Results
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => router.push(`/game/${game.id}/results`)} variant="primary">
+              View Results
+            </Button>
+            {isAdmin && (
+              <>
+                <Button onClick={() => setShowEditModal(true)} variant="secondary">
+                  Edit Game Details
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (confirm('Reset this game back to live tracking? This will allow you to edit player results.')) {
+                      startTransition(async () => {
+                        await startGame(game.id);
+                        router.push(`/game/${game.id}/live`);
+                      });
+                    }
+                  }}
+                  variant="ghost"
+                  disabled={isPending}
+                >
+                  Reset to Live
+                </Button>
+                <Button onClick={handleDeleteGame} variant="danger" disabled={isPending}>
+                  Delete Game
+                </Button>
+              </>
+            )}
+          </div>
         </Card>
       )}
 
