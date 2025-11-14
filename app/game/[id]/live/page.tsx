@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import LiveGameClient from './page-client';
-import { initializeGamePlayers } from './actions';
 import { getServerAuth } from '@/lib/auth-server';
 
 interface LiveGamePageProps {
@@ -73,7 +72,34 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   }
 
   // Sync game_players with confirmed RSVPs (adds any new players who RSVP'd)
-  await initializeGamePlayers(gameId);
+  // This happens during render, so we don't revalidate (data is fetched fresh below)
+  const { data: rsvps } = await supabase
+    .from('rsvps')
+    .select('*')
+    .eq('gameId', gameId)
+    .eq('status', 'confirmed');
+
+  const { data: existingGamePlayers } = await supabase
+    .from('game_players')
+    .select('*')
+    .eq('gameId', gameId);
+
+  // Find RSVPs that don't have game_player entries yet
+  const existingPlayerIds = new Set(existingGamePlayers?.map(gp => gp.playerId) || []);
+  const newRsvps = (rsvps || []).filter(rsvp => !existingPlayerIds.has(rsvp.playerId));
+
+  // Only insert if there are new players
+  if (newRsvps.length > 0) {
+    const gamePlayersToInsert = newRsvps.map(rsvp => ({
+      gameId,
+      playerId: rsvp.playerId,
+      buyIns: [game.buyIn],
+      cashOut: 0,
+      profit: 0,
+    }));
+
+    await supabase.from('game_players').insert(gamePlayersToInsert);
+  }
 
   // Fetch all data in parallel
   const [gamePlayersRes, playersRes] = await Promise.all([
