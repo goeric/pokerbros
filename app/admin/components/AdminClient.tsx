@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Player } from '@/types';
 import { UserRole } from '@/lib/auth-server';
@@ -15,9 +16,19 @@ interface AdminClientProps {
 }
 
 export default function AdminClient({ initialPlayers, canEdit, userRole }: AdminClientProps) {
+  const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Clean up OAuth redirect timestamp from URL
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('t')) {
+      url.searchParams.delete('t');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   const handleOpenModal = (player?: Player) => {
     setEditingPlayer(player || null);
