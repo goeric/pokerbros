@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const allowedOrigins = [
     requestUrl.origin,
     'http://localhost:3000',
-    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean);
 
   // For OAuth callbacks, the origin might be from Google, so we check the referer contains our domain
