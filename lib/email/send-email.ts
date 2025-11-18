@@ -3,7 +3,14 @@ import { render } from '@react-email/components';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy-initialize Resend to avoid build errors when API key isn't available
+let resendInstance: Resend | null = null;
+function getResend() {
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendInstance;
+}
 
 interface SendEmailOptions {
   to: string | string[];
@@ -103,7 +110,7 @@ export async function sendEmail({
       : undefined;
 
     // Send email via Resend
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: `${process.env.RESEND_FROM_NAME || 'PokerBros'} <${
         process.env.RESEND_FROM_EMAIL || 'poker@pokerbros.xyz'
       }>`,
