@@ -12,6 +12,43 @@ function getResend() {
   return resendInstance;
 }
 
+/**
+ * Get a feature flag value from the settings table
+ */
+async function getFeatureFlag(key: string, defaultValue: boolean = false): Promise<boolean> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    const { data } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', key)
+      .single();
+
+    if (!data) return defaultValue;
+
+    // Value is stored as JSONB, so it could be a boolean or string "true"/"false"
+    const value = data.value;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value === 'true';
+    return defaultValue;
+  } catch (error) {
+    console.warn(`[SETTINGS] Failed to fetch flag "${key}", using default: ${defaultValue}`, error);
+    return defaultValue;
+  }
+}
+
 interface SendEmailOptions {
   to: string | string[];
   subject: string;
@@ -27,10 +64,11 @@ interface EmailResult {
 }
 
 /**
- * Send an email via Resend with development safety filtering
+ * Send an email via Resend with safety filtering
  *
- * IMPORTANT: In non-production environments, only sends emails to superadmins
- * to prevent accidentally spamming real players during development.
+ * IMPORTANT: When email_superadmin_only flag is enabled (default in production),
+ * only sends emails to superadmins to prevent accidentally spamming real players.
+ * Always filtered to superadmins in non-production environments.
  */
 export async function sendEmail({
   to,
@@ -41,10 +79,16 @@ export async function sendEmail({
   try {
     const recipients = Array.isArray(to) ? to : [to];
 
-    // Safety filter: In development/staging, only send to superadmins
+    // Check feature flag for email filtering
+    // Default to true (superadmin-only) for safety
+    const superadminOnly = process.env.NODE_ENV !== 'production'
+      ? true // Always filter in dev/staging
+      : await getFeatureFlag('email_superadmin_only', true); // Check flag in production
+
+    // Safety filter: Only send to superadmins if flag is enabled
     let filteredRecipients = recipients;
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (superadminOnly) {
       const cookieStore = await cookies();
 
       const supabase = createServerClient(
@@ -79,20 +123,20 @@ export async function sendEmail({
 
       if (skippedEmails.length > 0) {
         console.log(
-          `[EMAIL DEV] Skipped sending to non-superadmins: ${skippedEmails.join(', ')}`
+          `[EMAIL SAFETY] Skipped sending to non-superadmins: ${skippedEmails.join(', ')}`
         );
       }
 
       if (filteredRecipients.length > 0) {
         console.log(
-          `[EMAIL DEV] Sending email only to superadmins: ${filteredRecipients.join(', ')}`
+          `[EMAIL SAFETY] Sending email only to superadmins: ${filteredRecipients.join(', ')}`
         );
       }
 
       // If no superadmins in recipient list, skip sending entirely
       if (filteredRecipients.length === 0) {
         console.log(
-          `[EMAIL DEV] No superadmins in recipient list - skipping email: "${subject}"`
+          `[EMAIL SAFETY] No superadmins in recipient list - skipping email: "${subject}"`
         );
         return { success: true, skipped: true, filteredRecipients: [] };
       }
