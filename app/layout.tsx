@@ -9,6 +9,11 @@ import { getServerAuth } from '@/lib/auth-server';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// Force dynamic rendering to prevent layout caching
+// This ensures auth state is always fresh after OAuth callbacks
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'PokerBros - Never Miss a Full Table',
   description: 'Manage your home poker games with real-time tracking and player statistics',

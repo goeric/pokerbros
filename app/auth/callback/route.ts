@@ -58,9 +58,11 @@ export async function GET(request: Request) {
     );
   }
 
-  // Create response that we'll redirect with
-  let response = NextResponse.next();
   const cookieStore = await cookies();
+
+  // Track cookies to set on response
+  const cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }> = [];
+  const cookiesToRemove: Array<{ name: string; options: CookieOptions }> = [];
 
   // Create Supabase client with proper cookie handling
   const supabase = createServerClient(
@@ -72,33 +74,10 @@ export async function GET(request: Request) {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (e) {
-            logger.debug('[Callback] Could not set cookie on store', e);
-          }
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-            sameSite: 'lax',
-            path: '/',
-          });
+          cookiesToSet.push({ name, value, options });
         },
         remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.delete(name);
-          } catch (e) {
-            logger.debug('[Callback] Could not delete cookie from store', e);
-          }
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-            sameSite: 'lax',
-            path: '/',
-            maxAge: 0,
-          });
+          cookiesToRemove.push({ name, options });
         },
       },
     }
@@ -133,14 +112,44 @@ export async function GET(request: Request) {
       expiresAt: data.session.expires_at,
     });
 
-    // Redirect to admin page with cache-busting headers
-    response = NextResponse.redirect(new URL('/admin', requestUrl.origin));
+    // Create redirect response with timestamp to bust Next.js router cache
+    const redirectUrl = new URL('/admin', requestUrl.origin);
+    redirectUrl.searchParams.set('t', Date.now().toString());
+
+    const response = NextResponse.redirect(redirectUrl);
+
+    // Set all cookies with proper security options
+    const isProduction = process.env.NODE_ENV === 'production';
+    cookiesToSet.forEach(({ name, value, options }) => {
+      response.cookies.set({
+        name,
+        value,
+        ...options,
+        sameSite: 'lax',
+        secure: isProduction, // Secure flag in production
+        path: '/',
+      });
+    });
+
+    cookiesToRemove.forEach(({ name, options }) => {
+      response.cookies.set({
+        name,
+        value: '',
+        ...options,
+        sameSite: 'lax',
+        secure: isProduction,
+        path: '/',
+        maxAge: 0,
+      });
+    });
 
     // Force Next.js to not use cached data
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response.headers.set('Pragma', 'no-cache');
     response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
 
+    logger.info('[Callback] Redirecting to admin with fresh session');
     return response;
   } catch (err) {
     logger.error('[Callback] Unexpected error', err);
