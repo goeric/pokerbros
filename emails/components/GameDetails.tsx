@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Section, Text } from '@react-email/components';
+import { Section, Text, Link } from '@react-email/components';
 
 interface GameDetailsProps {
   date: string;
@@ -18,6 +18,11 @@ export default function GameDetails({
   buyIn,
   notes,
 }: GameDetailsProps) {
+  // Create Google Maps link if address is provided
+  const mapsUrl = address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+    : null;
+
   return (
     <Section style={detailsBox}>
       <Text style={detailRow}>
@@ -35,7 +40,13 @@ export default function GameDetails({
           {address && (
             <>
               <br />
-              <span style={subtext}>{address}</span>
+              {mapsUrl ? (
+                <Link href={mapsUrl} style={addressLink}>
+                  {address}
+                </Link>
+              ) : (
+                <span style={subtext}>{address}</span>
+              )}
             </>
           )}
         </span>
@@ -81,6 +92,13 @@ const subtext = {
   fontSize: '14px',
   color: '#6b7280',
   fontWeight: 'normal',
+};
+
+const addressLink = {
+  fontSize: '14px',
+  color: '#059669',
+  fontWeight: 'normal',
+  textDecoration: 'underline',
 };
 
 const notesText = {
