@@ -3,9 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { GameSchema, formatZodError } from '@/lib/validation';
-import { sendToAllPlayers } from '@/lib/email/send-email';
+import { sendEmail } from '@/lib/email/send-email';
+import { createEmailActionToken } from '@/lib/email/action-tokens';
 import GameCreated from '@/emails/templates/GameCreated';
 import { formatDate, formatTime } from '@/lib/utils';
+import { Player } from '@/types';
 
 export async function createGame(gameData: {
   date: string;
@@ -55,20 +57,41 @@ export async function createGame(gameData: {
       return handleServerError(error, 'ERR_GAME_CREATE', 'Failed to create game. Please try again.');
     }
 
-    // Send email notification to all players
+    // Send email notification to all players with personalized RSVP links
     if (data && location) {
-      await sendToAllPlayers({
-        subject: `New Poker Night: ${formatDate(data.date)}`,
-        react: GameCreated({
-          gameId: data.id,
-          date: formatDate(data.date),
-          time: formatTime(data.time),
-          location: location.name,
-          address: location.address,
-          buyIn: data.buyIn,
-          notes: data.notes || undefined,
-        }),
-      });
+      // Get all players with email notifications enabled
+      const { data: players } = await supabase
+        .from('players')
+        .select('*')
+        .eq('email_notifications', true)
+        .not('email', 'is', null);
+
+      // Send individual emails with unique RSVP tokens
+      if (players && players.length > 0) {
+        for (const player of players) {
+          // Generate one-click RSVP token
+          const tokenResult = await createEmailActionToken({
+            gameId: data.id,
+            playerId: player.id,
+            action: 'rsvp',
+          });
+
+          await sendEmail({
+            to: player.email,
+            subject: `New Poker Night: ${formatDate(data.date)}`,
+            react: GameCreated({
+              gameId: data.id,
+              date: formatDate(data.date),
+              time: formatTime(data.time),
+              location: location.name,
+              address: location.address,
+              buyIn: data.buyIn,
+              notes: data.notes || undefined,
+              rsvpUrl: tokenResult.success ? tokenResult.url : undefined,
+            }),
+          });
+        }
+      }
     }
 
     revalidatePath('/');

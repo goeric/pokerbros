@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Text, Heading, Link } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import GameDetails from '../components/GameDetails';
+import Button from '../components/Button';
 
 interface GameUpdatedProps {
   gameId: string;
@@ -13,6 +14,7 @@ interface GameUpdatedProps {
   address: string;
   buyIn: number;
   notes?: string;
+  cancelRsvpUrl?: string;
 }
 
 export default function GameUpdated({
@@ -25,6 +27,7 @@ export default function GameUpdated({
   address,
   buyIn,
   notes,
+  cancelRsvpUrl,
 }: GameUpdatedProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -55,11 +58,17 @@ export default function GameUpdated({
         Your calendar has been updated automatically.
       </Text>
 
-      <Text style={paragraph}>
-        <Link href={gameUrl} style={link}>
-          View Game Details
-        </Link>
-      </Text>
+      {cancelRsvpUrl && (
+        <Button href={cancelRsvpUrl}>Cancel my RSVP</Button>
+      )}
+
+      {!cancelRsvpUrl && (
+        <Text style={paragraph}>
+          <Link href={gameUrl} style={link}>
+            View Game Details
+          </Link>
+        </Text>
+      )}
     </EmailLayout>
   );
 }

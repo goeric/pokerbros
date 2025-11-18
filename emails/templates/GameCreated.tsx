@@ -12,6 +12,7 @@ interface GameCreatedProps {
   address: string;
   buyIn: number;
   notes?: string;
+  rsvpUrl?: string;
 }
 
 export default function GameCreated({
@@ -22,6 +23,7 @@ export default function GameCreated({
   address,
   buyIn,
   notes,
+  rsvpUrl,
 }: GameCreatedProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -44,7 +46,7 @@ export default function GameCreated({
         Seats are limited - RSVP now to secure your spot!
       </Text>
 
-      <Button href={gameUrl}>RSVP Now</Button>
+      <Button href={rsvpUrl || gameUrl}>RSVP Now</Button>
 
       <Text style={smallText}>
         Can't make it? No problem - we'll see you at the next one!

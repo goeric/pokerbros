@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
 import { Game, RSVP, Player } from '@/types';
@@ -20,6 +20,8 @@ interface GameDetailClientProps {
   players: Player[];
   user: User | null;
   isAdmin: boolean;
+  successMessage?: string;
+  errorMessage?: string;
 }
 
 export default function GameDetailClient({
@@ -28,12 +30,39 @@ export default function GameDetailClient({
   players,
   user,
   isAdmin,
+  successMessage,
+  errorMessage,
 }: GameDetailClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [showPromotion, setShowPromotion] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  // Show toast and auto-dismiss after 5 seconds
+  useEffect(() => {
+    if (successMessage || errorMessage) {
+      setShowToast(true);
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        // Clean up URL after dismissing
+        router.replace(`/game/${game.id}`, { scroll: false });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, errorMessage, router, game.id]);
+
+  const getToastMessage = () => {
+    if (successMessage === 'rsvp_added') return { type: 'success', text: 'RSVP confirmed! You\'re all set for poker night.' };
+    if (successMessage === 'rsvp_cancelled') return { type: 'success', text: 'RSVP cancelled. Your spot has been released.' };
+    if (errorMessage === 'invalid_token') return { type: 'error', text: 'Invalid or expired link. Please RSVP manually.' };
+    if (errorMessage === 'token_mismatch') return { type: 'error', text: 'Invalid link. Please RSVP manually.' };
+    if (errorMessage === 'action_failed') return { type: 'error', text: 'Action failed. Please try again.' };
+    return null;
+  };
+
+  const toastData = getToastMessage();
 
   const rsvps = initialRSVPs;
 
@@ -129,6 +158,33 @@ export default function GameDetailClient({
 
   return (
     <>
+      {/* Toast Notification */}
+      {showToast && toastData && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-md px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ${
+            toastData.type === 'success'
+              ? 'bg-green-600 text-white'
+              : 'bg-red-600 text-white'
+          } animate-slide-in`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">
+              {toastData.type === 'success' ? '✓' : '⚠️'}
+            </span>
+            <p className="font-medium">{toastData.text}</p>
+            <button
+              onClick={() => {
+                setShowToast(false);
+                router.replace(`/game/${game.id}`, { scroll: false });
+              }}
+              className="ml-auto text-white/80 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Promotion Banner */}
       {showPromotion && (
         <div className="mb-6 bg-gradient-to-r from-green-900/50 to-emerald-900/50 border border-green-700 rounded-lg p-4 animate-slide-in">
