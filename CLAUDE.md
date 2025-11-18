@@ -270,10 +270,40 @@ The application has six core entities with specific relationships:
    - Cannot remove the initial buy-in (minimum 1 buy-in per player)
 9. **Email Notifications**:
    - Powered by Resend (requires `RESEND_API_KEY`)
+   - React Email templates for all notification types
+   - Calendar invites (.ics) attached to RSVP confirmations
    - Feature flag `email_superadmin_only` controls safety mode
    - When enabled (default): only superadmins receive emails
    - When disabled: all players receive emails
    - Prevents accidental spam during development/testing
+
+   **Email Templates** (`/emails/templates/`):
+   - `GameCreated.tsx` - Announcement when game is created (no calendar invite)
+   - `RsvpConfirmation.tsx` - Confirmation with .ics calendar attachment
+   - `WaitlistPromotion.tsx` - Notification when promoted from waitlist
+   - `RsvpCancellation.tsx` - Cancellation notice with calendar cancellation
+   - `GameUpdated.tsx` - Update notification with updated calendar invite
+   - `GameCancelled.tsx` - Cancellation notice to all confirmed players
+   - `GameReminder.tsx` - Reminder emails (handles 24h and 3h reminders) - **NOT YET WIRED UP**
+
+   **Calendar Integration** (`/lib/email/generate-ics.ts`):
+   - Generates .ics files using `ics` library
+   - UID format: `game-{gameId}@pokerbros.xyz` (ensures updates modify same event)
+   - SEQUENCE increments on updates (tells calendar apps it's newer)
+   - STATUS: `CONFIRMED` for invites, `CANCELLED` for cancellations
+   - Duration: 4 hours from game start time
+   - Includes location address for navigation
+
+   **Email Triggers** (already implemented):
+   - Game created → all players with notifications enabled
+   - RSVP confirmed → confirmation with calendar invite
+   - RSVP cancelled → cancellation notice
+   - Waitlist promotion → promotion notification
+   - Game updated → all confirmed players with updated calendar
+   - Game cancelled → all confirmed players with calendar cancellation
+
+   **Not Yet Implemented:**
+   - Automated reminders (24h and 3h before game) - see `remindersPRD.md`
 10. **Feature Flags**:
    - Stored in `settings` table (key/value JSONB)
    - Managed via `/admin/settings` page
