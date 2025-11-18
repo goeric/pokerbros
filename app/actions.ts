@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { GameSchema, formatZodError } from '@/lib/validation';
+import { sendToAllPlayers } from '@/lib/email/send-email';
+import GameCreated from '@/emails/templates/GameCreated';
+import { formatDate, formatTime } from '@/lib/utils';
 
 export async function createGame(gameData: {
   date: string;
@@ -26,10 +29,10 @@ export async function createGame(gameData: {
 
     const validData = result.data;
 
-    // Fetch location name for backward compatibility with venue field
+    // Fetch location details for email and backward compatibility
     const { data: location } = await supabase
       .from('locations')
-      .select('name')
+      .select('name, address')
       .eq('id', validData.location_id)
       .single();
 
@@ -50,6 +53,22 @@ export async function createGame(gameData: {
 
     if (error) {
       return handleServerError(error, 'ERR_GAME_CREATE', 'Failed to create game. Please try again.');
+    }
+
+    // Send email notification to all players
+    if (data && location) {
+      await sendToAllPlayers({
+        subject: `New Poker Night: ${formatDate(data.date)}`,
+        react: GameCreated({
+          gameId: data.id,
+          date: formatDate(data.date),
+          time: formatTime(data.time),
+          location: location.name,
+          address: location.address,
+          buyIn: data.buyIn,
+          notes: data.notes || undefined,
+        }),
+      });
     }
 
     revalidatePath('/');

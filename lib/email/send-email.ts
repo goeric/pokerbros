@@ -1,0 +1,184 @@
+import { Resend } from 'resend';
+import { render } from '@react-email/components';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+interface SendEmailOptions {
+  to: string | string[];
+  subject: string;
+  react: React.ReactElement;
+  icsContent?: string;
+}
+
+interface EmailResult {
+  success: boolean;
+  skipped?: boolean;
+  filteredRecipients?: string[];
+  error?: string;
+}
+
+/**
+ * Send an email via Resend with development safety filtering
+ *
+ * IMPORTANT: In non-production environments, only sends emails to superadmins
+ * to prevent accidentally spamming real players during development.
+ */
+export async function sendEmail({
+  to,
+  subject,
+  react,
+  icsContent,
+}: SendEmailOptions): Promise<EmailResult> {
+  try {
+    const recipients = Array.isArray(to) ? to : [to];
+
+    // Safety filter: In development/staging, only send to superadmins
+    let filteredRecipients = recipients;
+
+    if (process.env.NODE_ENV !== 'production') {
+      const cookieStore = await cookies();
+
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return cookieStore.get(name)?.value;
+            },
+          },
+        }
+      );
+
+      // Get all superadmin emails
+      const { data: superadmins } = await supabase
+        .from('admin_users')
+        .select('email')
+        .eq('is_superadmin', true);
+
+      const superadminEmails = superadmins?.map((a) => a.email) || [];
+
+      // Filter recipients to only include superadmins
+      filteredRecipients = recipients.filter((email) =>
+        superadminEmails.includes(email)
+      );
+
+      // Log what happened
+      const skippedEmails = recipients.filter(
+        (email) => !superadminEmails.includes(email)
+      );
+
+      if (skippedEmails.length > 0) {
+        console.log(
+          `[EMAIL DEV] Skipped sending to non-superadmins: ${skippedEmails.join(', ')}`
+        );
+      }
+
+      if (filteredRecipients.length > 0) {
+        console.log(
+          `[EMAIL DEV] Sending email only to superadmins: ${filteredRecipients.join(', ')}`
+        );
+      }
+
+      // If no superadmins in recipient list, skip sending entirely
+      if (filteredRecipients.length === 0) {
+        console.log(
+          `[EMAIL DEV] No superadmins in recipient list - skipping email: "${subject}"`
+        );
+        return { success: true, skipped: true, filteredRecipients: [] };
+      }
+    }
+
+    // Prepare email attachments (if .ics provided)
+    const attachments = icsContent
+      ? [
+          {
+            filename: 'event.ics',
+            content: Buffer.from(icsContent).toString('base64'),
+            contentType: 'text/calendar',
+          },
+        ]
+      : undefined;
+
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: `${process.env.RESEND_FROM_NAME || 'PokerBros'} <${
+        process.env.RESEND_FROM_EMAIL || 'poker@pokerbros.xyz'
+      }>`,
+      to: filteredRecipients,
+      subject,
+      html: await render(react),
+      attachments,
+    });
+
+    if (error) {
+      console.error('[EMAIL] Error sending email:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(
+      `[EMAIL] Sent successfully to ${filteredRecipients.length} recipient(s): "${subject}"`
+    );
+
+    return {
+      success: true,
+      filteredRecipients,
+    };
+  } catch (error: any) {
+    console.error('[EMAIL] Unexpected error sending email:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Send email to all players with email notifications enabled
+ */
+export async function sendToAllPlayers({
+  subject,
+  react,
+}: {
+  subject: string;
+  react: React.ReactElement;
+}): Promise<EmailResult> {
+  try {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    // Get all players with email notifications enabled
+    const { data: players } = await supabase
+      .from('players')
+      .select('email')
+      .eq('email_notifications', true)
+      .not('email', 'is', null);
+
+    if (!players || players.length === 0) {
+      console.log('[EMAIL] No players with email notifications enabled');
+      return { success: true, skipped: true };
+    }
+
+    const playerEmails = players.map((p) => p.email).filter(Boolean) as string[];
+
+    // Send email to all players (with safety filtering applied)
+    return await sendEmail({
+      to: playerEmails,
+      subject,
+      react,
+    });
+  } catch (error: any) {
+    console.error('[EMAIL] Error sending to all players:', error);
+    return { success: false, error: error.message };
+  }
+}
