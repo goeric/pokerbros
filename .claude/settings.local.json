@@ -3,7 +3,9 @@
     "allow": [
       "Bash(supabase status:*)",
       "Bash(git commit:*)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(supabase db push:*)",
+      "Bash(supabase db execute:*)"
     ],
     "deny": [],
     "ask": []
