@@ -133,8 +133,14 @@ export async function GET(request: Request) {
       expiresAt: data.session.expires_at,
     });
 
-    // Redirect to admin page
+    // Redirect to admin page with cache-busting headers
     response = NextResponse.redirect(new URL('/admin', requestUrl.origin));
+
+    // Force Next.js to not use cached data
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+
     return response;
   } catch (err) {
     logger.error('[Callback] Unexpected error', err);
