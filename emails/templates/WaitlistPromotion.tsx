@@ -13,6 +13,7 @@ interface WaitlistPromotionProps {
   address: string;
   buyIn: number;
   notes?: string;
+  cancelRsvpUrl?: string;
 }
 
 export default function WaitlistPromotion({
@@ -24,6 +25,7 @@ export default function WaitlistPromotion({
   address,
   buyIn,
   notes,
+  cancelRsvpUrl,
 }: WaitlistPromotionProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -51,6 +53,15 @@ export default function WaitlistPromotion({
       />
 
       <Button href={gameUrl}>View Game Details</Button>
+
+      {cancelRsvpUrl && (
+        <Text style={paragraph}>
+          Can't make it?{' '}
+          <a href={cancelRsvpUrl} style={link}>
+            Cancel my RSVP
+          </a>
+        </Text>
+      )}
 
       <Text style={paragraph}>
         Your calendar has been updated. See you at the felt!
@@ -84,4 +95,9 @@ const highlight = {
   lineHeight: '24px',
   margin: '24px 0',
   fontWeight: '500',
+};
+
+const link = {
+  color: '#059669',
+  textDecoration: 'underline',
 };

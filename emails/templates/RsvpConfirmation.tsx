@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Text, Heading, Link } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import GameDetails from '../components/GameDetails';
+import Button from '../components/Button';
 
 interface RsvpConfirmationProps {
   gameId: string;
@@ -12,6 +13,7 @@ interface RsvpConfirmationProps {
   address: string;
   buyIn: number;
   notes?: string;
+  cancelRsvpUrl?: string;
 }
 
 export default function RsvpConfirmation({
@@ -23,6 +25,7 @@ export default function RsvpConfirmation({
   address,
   buyIn,
   notes,
+  cancelRsvpUrl,
 }: RsvpConfirmationProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -46,12 +49,18 @@ export default function RsvpConfirmation({
         notes={notes}
       />
 
-      <Text style={paragraph}>
-        Need to cancel?{' '}
-        <Link href={gameUrl} style={link}>
-          Cancel my RSVP
-        </Link>
-      </Text>
+      {cancelRsvpUrl && (
+        <Button href={cancelRsvpUrl}>Cancel my RSVP</Button>
+      )}
+
+      {!cancelRsvpUrl && (
+        <Text style={paragraph}>
+          Need to cancel?{' '}
+          <Link href={gameUrl} style={link}>
+            Cancel my RSVP
+          </Link>
+        </Text>
+      )}
 
       <Text style={seeYou}>See you at the felt! 🃏</Text>
     </EmailLayout>

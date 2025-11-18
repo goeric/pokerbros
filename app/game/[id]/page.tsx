@@ -7,10 +7,12 @@ import { logger } from '@/lib/logger';
 
 interface GamePageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ success?: string; error?: string }>;
 }
 
-export default async function GameDetailPage({ params }: GamePageProps) {
+export default async function GameDetailPage({ params, searchParams }: GamePageProps) {
   const { id: gameId } = await params;
+  const urlParams = await searchParams;
   const cookieStore = await cookies();
 
   // Get auth state server-side
@@ -92,6 +94,8 @@ export default async function GameDetailPage({ params }: GamePageProps) {
         players={players}
         user={user}
         isAdmin={isAdmin}
+        successMessage={urlParams.success}
+        errorMessage={urlParams.error}
       />
     </div>
   );

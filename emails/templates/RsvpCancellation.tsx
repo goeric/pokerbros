@@ -8,6 +8,7 @@ interface RsvpCancellationProps {
   date: string;
   time: string;
   location: string;
+  rsvpUrl?: string;
 }
 
 export default function RsvpCancellation({
@@ -16,6 +17,7 @@ export default function RsvpCancellation({
   date,
   time,
   location,
+  rsvpUrl,
 }: RsvpCancellationProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -40,7 +42,7 @@ export default function RsvpCancellation({
 
       <Text style={paragraph}>
         If you change your mind, you can RSVP again:{' '}
-        <Link href={gameUrl} style={link}>
+        <Link href={rsvpUrl || gameUrl} style={link}>
           RSVP Again
         </Link>
       </Text>

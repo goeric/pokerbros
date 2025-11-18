@@ -5,6 +5,7 @@ import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/l
 import { RSVPSchema, GameSchema, formatZodError } from '@/lib/validation';
 import { sendEmail } from '@/lib/email/send-email';
 import { generateGameIcs } from '@/lib/email/generate-ics';
+import { createEmailActionToken } from '@/lib/email/action-tokens';
 import RsvpConfirmation from '@/emails/templates/RsvpConfirmation';
 import RsvpCancellation from '@/emails/templates/RsvpCancellation';
 import WaitlistPromotion from '@/emails/templates/WaitlistPromotion';
@@ -92,6 +93,13 @@ export async function addRSVP(gameId: string, playerId: string) {
       if (game && player && player.email) {
         const location = game.locations as unknown as Location;
 
+        // Generate one-click cancel RSVP token
+        const tokenResult = await createEmailActionToken({
+          gameId,
+          playerId,
+          action: 'cancel_rsvp',
+        });
+
         // Generate calendar invite
         const icsContent = generateGameIcs({
           game: game as Game,
@@ -114,6 +122,7 @@ export async function addRSVP(gameId: string, playerId: string) {
             address: location.address,
             buyIn: game.buyIn,
             notes: game.notes || undefined,
+            cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
           }),
           icsContent: icsContent || undefined,
         });
@@ -197,6 +206,13 @@ export async function cancelRSVP(gameId: string, playerId: string) {
     if (rsvp?.status === 'confirmed' && game && player && player.email) {
       const location = game.locations as unknown as Location;
 
+      // Generate one-click RSVP token (in case they want to RSVP again)
+      const tokenResult = await createEmailActionToken({
+        gameId,
+        playerId,
+        action: 'rsvp',
+      });
+
       // Generate calendar cancellation
       const icsContent = generateGameIcs({
         game: game as Game,
@@ -216,6 +232,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
           date: formatDate(game.date),
           time: formatTime(game.time),
           location: location.name,
+          rsvpUrl: tokenResult.success ? tokenResult.url : undefined,
         }),
         icsContent: icsContent || undefined,
       });
@@ -241,6 +258,13 @@ export async function cancelRSVP(gameId: string, playerId: string) {
           if (promotedPlayer && promotedPlayer.email) {
             const location = game.locations as unknown as Location;
 
+            // Generate one-click cancel RSVP token
+            const tokenResult = await createEmailActionToken({
+              gameId,
+              playerId: promotedPlayer.id,
+              action: 'cancel_rsvp',
+            });
+
             // Generate calendar invite for promoted player
             const icsContent = generateGameIcs({
               game: game as Game,
@@ -263,6 +287,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
                 address: location.address,
                 buyIn: game.buyIn,
                 notes: game.notes || undefined,
+                cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
               }),
               icsContent: icsContent || undefined,
             });
@@ -382,6 +407,13 @@ export async function updateGame(
           for (const rsvp of rsvps) {
             const player = rsvp.players as unknown as Player;
             if (player && player.email) {
+              // Generate one-click cancel RSVP token
+              const tokenResult = await createEmailActionToken({
+                gameId,
+                playerId: player.id,
+                action: 'cancel_rsvp',
+              });
+
               // Generate updated calendar invite
               const icsContent = generateGameIcs({
                 game: {
@@ -411,6 +443,7 @@ export async function updateGame(
                   address: newLocation.address,
                   buyIn: validData.buyIn,
                   notes: validData.notes || undefined,
+                  cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
                 }),
                 icsContent: icsContent || undefined,
               });
