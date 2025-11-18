@@ -8,7 +8,7 @@ export async function createGame(gameData: {
   date: string;
   time: string;
   buyIn: number;
-  venue: string;
+  location_id: string;
   notes: string;
 }) {
   try {
@@ -26,13 +26,21 @@ export async function createGame(gameData: {
 
     const validData = result.data;
 
+    // Fetch location name for backward compatibility with venue field
+    const { data: location } = await supabase
+      .from('locations')
+      .select('name')
+      .eq('id', validData.location_id)
+      .single();
+
     const { data, error } = await supabase
       .from('games')
       .insert({
         date: validData.date,
         time: validData.time,
         buyIn: validData.buyIn,
-        venue: validData.venue,
+        location_id: validData.location_id,
+        venue: location?.name || '', // Populate venue for backward compatibility
         status: 'upcoming',
         notes: validData.notes || null,
         createdAt: new Date().toISOString(),

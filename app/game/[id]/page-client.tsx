@@ -75,7 +75,7 @@ export default function GameDetailClient({
     });
   };
 
-  const handleEditGame = async (formData: { date: string; time: string; buyIn: number; venue: string; notes: string }) => {
+  const handleEditGame = async (formData: { date: string; time: string; buyIn: number; location_id: string; notes: string }) => {
     startTransition(async () => {
       const result = await updateGame(game.id, formData);
 
@@ -458,7 +458,7 @@ export default function GameDetailClient({
           date: game.date,
           time: game.time,
           buyIn: game.buyIn,
-          venue: game.venue,
+          location_id: game.location_id || '',
           notes: game.notes || '',
         }}
         mode="edit"

@@ -52,11 +52,9 @@ export const GameSchema = z.object({
     .min(1, 'Buy-in must be at least $1')
     .max(10000, 'Buy-in cannot exceed $10,000')
     .int('Buy-in must be a whole number'),
-  venue: z
+  location_id: z
     .string()
-    .min(1, 'Venue is required')
-    .max(200, 'Venue must be less than 200 characters')
-    .trim(),
+    .uuid('Please select a valid location'),
   notes: z
     .string()
     .max(1000, 'Notes must be less than 1000 characters')

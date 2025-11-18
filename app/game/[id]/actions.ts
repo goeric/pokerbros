@@ -160,7 +160,7 @@ export async function startGame(gameId: string) {
 
 export async function updateGame(
   gameId: string,
-  gameData: { date: string; time: string; buyIn: number; venue: string; notes: string }
+  gameData: { date: string; time: string; buyIn: number; location_id: string; notes: string }
 ) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -176,13 +176,21 @@ export async function updateGame(
 
     const validData = result.data;
 
+    // Fetch location name for backward compatibility with venue field
+    const { data: location } = await supabase
+      .from('locations')
+      .select('name')
+      .eq('id', validData.location_id)
+      .single();
+
     const { error } = await supabase
       .from('games')
       .update({
         date: validData.date,
         time: validData.time,
         buyIn: validData.buyIn,
-        venue: validData.venue,
+        location_id: validData.location_id,
+        venue: location?.name || '', // Populate venue for backward compatibility
         notes: validData.notes || null,
       })
       .eq('id', gameId);

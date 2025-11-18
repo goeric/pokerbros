@@ -14,7 +14,7 @@ export default function CreateGameModal({ isOpen, onClose }: CreateGameModalProp
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = async (formData: { date: string; time: string; buyIn: number; venue: string; notes: string }) => {
+  const handleSubmit = async (formData: { date: string; time: string; buyIn: number; location_id: string; notes: string }) => {
     startTransition(async () => {
       const result = await createGame(formData);
 
