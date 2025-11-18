@@ -231,6 +231,60 @@ CREATE TABLE rsvps (
 
 ---
 
+### 6. `settings` Table
+
+Stores feature flags and application configuration as key-value pairs.
+
+```sql
+CREATE TABLE settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  description TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Fields:**
+- `key` (TEXT, PK): Unique setting identifier (e.g., `email_superadmin_only`, `app_version`)
+- `value` (JSONB, NOT NULL): Setting value (flexible type: boolean, string, number, object)
+- `description` (TEXT, NULLABLE): Human-readable explanation of what the setting controls
+- `updated_at` (TIMESTAMPTZ): Last modification timestamp
+
+**Current Settings:**
+- `email_superadmin_only` (JSONB boolean): When `true`, emails only sent to superadmins (safety mode)
+- `app_version` (JSONB string): Current application version for tracking deployments
+
+**Usage:**
+```typescript
+// Read feature flag (lib/email/send-email.ts)
+const { data } = await supabase
+  .from('settings')
+  .select('value')
+  .eq('key', 'email_superadmin_only')
+  .single();
+
+const isEnabled = data?.value === true; // JSONB boolean
+
+// Update setting (app/admin/settings/actions.ts)
+await supabase
+  .from('settings')
+  .update({ value: newValue.toString() })
+  .eq('key', settingKey);
+```
+
+**Indexes:**
+- Primary key on `key`
+- Index on `key` for fast lookups
+
+**RLS Policies:**
+- Public read access (anyone can check feature flags)
+- Admin-only write access (only authenticated admins can modify)
+
+**Trigger:**
+- `update_settings_updated_at` trigger automatically updates `updated_at` on modification
+
+---
+
 ## Authentication System
 
 ### Architecture Overview
