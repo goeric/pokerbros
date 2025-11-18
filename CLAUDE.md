@@ -58,13 +58,14 @@ npm test
 
 ### Data Model
 
-The application has five core entities with specific relationships:
+The application has six core entities with specific relationships:
 
 - **AdminUsers**: Users with admin privileges (linked to Supabase Auth). Includes `is_superadmin` flag for elevated permissions
 - **Players**: Poker players managed by admins. Stores name, nickname, email, and aggregate statistics
 - **Games**: Events with status lifecycle: `upcoming` → `in_progress` → `completed`
 - **GamePlayers**: Junction table tracking player participation, buy-ins (array), cash-outs, and calculated profit
 - **RSVPs**: Manages seat confirmations with automatic waitlist handling (8 seat limit per game)
+- **Settings**: Feature flags and app configuration (key/value store with JSONB values)
 
 **Critical Logic:**
 - **Authentication**: Google OAuth via Supabase Auth. Admin users must exist in `admin_users` table
@@ -87,7 +88,8 @@ The application has five core entities with specific relationships:
 8. **Stats (`/stats`)**: Aggregated player data with filtering and leaderboard logic
 
 **Protected Routes:**
-- `/admin/*` - Requires authenticated admin user (enforced by middleware)
+- `/admin/*` - Requires authenticated admin user
+- `/admin/settings` - Feature flag management (superadmin recommended)
 
 ### Authentication Architecture (Server-First)
 
@@ -132,6 +134,45 @@ The application has five core entities with specific relationships:
 - Never call `useAuth()` to get user or isAdmin state
 - Always pass auth state as props from server components
 - Auth context is only for sign-in/sign-out actions
+
+#### OAuth Callback Flow & Caching
+
+**Critical**: The OAuth callback flow requires careful cache management to prevent stale auth state.
+
+**Implementation (`app/auth/callback/route.ts` + `app/layout.tsx`)**:
+
+1. **Layout Force Dynamic** (`app/layout.tsx:14-15`):
+   ```typescript
+   export const dynamic = 'force-dynamic';
+   export const revalidate = 0;
+   ```
+   - Prevents Next.js from caching layout renders
+   - Ensures auth state is always fresh after OAuth redirect
+   - Required because layout fetches auth and passes to Navigation
+
+2. **Callback Cookie Security** (`app/auth/callback/route.ts:122-132`):
+   - Cookies collected during `exchangeCodeForSession` and set atomically on redirect response
+   - `secure: true` in production (HTTPS-only)
+   - `sameSite: 'lax'` for CSRF protection
+   - Proper cookie domain handling
+
+3. **Router Cache Busting** (`app/auth/callback/route.ts:115-117`):
+   ```typescript
+   const redirectUrl = new URL('/admin', requestUrl.origin);
+   redirectUrl.searchParams.set('t', Date.now().toString());
+   ```
+   - Timestamp parameter forces Next.js to treat redirect as fresh request
+   - Client-side cleanup removes `?t=` param after mount (AdminClient.tsx:25-31)
+
+4. **Cache Control Headers** (`app/auth/callback/route.ts:147-150`):
+   - Multiple cache headers to bypass browser/CDN/Next.js caches
+   - Ensures fresh page load after OAuth redirect
+
+**Common OAuth Issues:**
+- **www vs non-www**: Configure domain redirect in Vercel (`www.example.com` → `example.com`)
+- **Supabase Redirect URLs**: Must explicitly allow callback URLs (wildcards may not work)
+- **Origin validation**: Uses `NEXT_PUBLIC_APP_URL` for allowed origins
+- **Cookie propagation**: Timing issues solved by collecting cookies first, then setting on response
 
 ### Server-Side Rendering (SSR) Architecture
 
@@ -227,6 +268,17 @@ The application has five core entities with specific relationships:
    - Admins can add rebuys during live games
    - Admins can remove the last rebuy (for error correction)
    - Cannot remove the initial buy-in (minimum 1 buy-in per player)
+9. **Email Notifications**:
+   - Powered by Resend (requires `RESEND_API_KEY`)
+   - Feature flag `email_superadmin_only` controls safety mode
+   - When enabled (default): only superadmins receive emails
+   - When disabled: all players receive emails
+   - Prevents accidental spam during development/testing
+10. **Feature Flags**:
+   - Stored in `settings` table (key/value JSONB)
+   - Managed via `/admin/settings` page
+   - Public read access, admin-only write via RLS
+   - Used for: email safety, app versioning, and future toggles
 
 ## Reusable Components
 
@@ -343,9 +395,10 @@ When adding new features:
 For comprehensive documentation on the database schema, authentication system, RLS policies, migrations, and API structure, see **[backend.md](./backend.md)**.
 
 **Quick Reference:**
-- Tables: `admin_users`, `players`, `games`, `game_players`, `rsvps`
-- All tables use UUID primary keys and have RLS policies
-- Public read access, admin-only write access
+- Tables: `admin_users`, `players`, `games`, `game_players`, `rsvps`, `settings`
+- All tables use UUID primary keys (except `settings` which uses TEXT primary key)
+- RLS policies: public read access, admin-only write access
+- Settings table: JSONB value column for flexible feature flags
 - Migrations in `/supabase/migrations/` using `YYYYMMDDHHMMSS_description.sql` naming
 
 ## Implementation Phases
@@ -384,19 +437,49 @@ When implementing tests:
 10. **Auth state in client components**: Never use `useAuth()` to get user/isAdmin state - these must be passed as props from Server Components
 11. **Next.js 16 cookies**: Always await `cookies()`: `const cookieStore = await cookies()`
 12. **Live game sync**: When initializing game_players from RSVPs, sync inline in page component without revalidation
+13. **OAuth callback caching**: Layout must have `dynamic = 'force-dynamic'` to prevent stale auth state after login
+14. **OAuth redirect URLs**: Explicitly add callback URLs to Supabase (wildcards may not be honored)
+15. **www subdomain**: Configure Vercel redirect from `www` to non-www to avoid OAuth domain mismatch
+16. **Email not sending in production**: Check `RESEND_API_KEY` is set AND user email in `admin_users` matches Google login email
+17. **Email safety flag**: Default is `true` (superadmin-only); toggle in `/admin/settings` to send to all players
 
 ## Environment Variables
 
-Required environment variables in `.env.local`:
+### Local Development (`.env.local`)
 
 ```bash
+# Supabase (from `supabase start` output)
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<from_supabase_start>
+
+# Google OAuth (from Google Cloud Console)
 GOOGLE_CLIENT_ID=<your_google_client_id>
 GOOGLE_CLIENT_SECRET=<your_google_client_secret>
+
+# App URL (for OAuth redirects and email links)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Email (from Resend.com - optional for local dev)
+RESEND_API_KEY=<your_resend_api_key>
 ```
 
 **Important**: Always use `localhost` (not `127.0.0.1`) for proper cookie handling.
+
+### Production (Vercel Environment Variables)
+
+**Required:**
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon/public key
+- `NEXT_PUBLIC_APP_URL` - Your custom domain (e.g., `https://pokerbros.xyz`)
+- `RESEND_API_KEY` - Your Resend API key for email notifications
+
+**OAuth (Supabase handles these via dashboard config):**
+- Google OAuth credentials configured in Supabase Dashboard → Authentication → Providers
+
+**Domain Setup:**
+- Configure `www` subdomain to redirect to non-www in Vercel
+- Add both `https://example.com/auth/callback` and `https://www.example.com/auth/callback` to Supabase Redirect URLs
+- Set Supabase Site URL to your primary domain
 
 See **[backend.md](./backend.md)** for complete environment setup and configuration details.
 
