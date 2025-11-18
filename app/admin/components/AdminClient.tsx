@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { Player } from '@/types';
 import { UserRole } from '@/lib/auth-server';
 import Button from '@/components/Button';
@@ -43,6 +44,24 @@ export default function AdminClient({ initialPlayers, canEdit, userRole }: Admin
 
   return (
     <>
+      {/* Admin Navigation */}
+      {canEdit && (
+        <div className="mb-6 flex gap-3">
+          <Link
+            href="/admin"
+            className="px-4 py-2 bg-poker-green text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            Players
+          </Link>
+          <Link
+            href="/admin/locations"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            Locations
+          </Link>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Player Management</h1>

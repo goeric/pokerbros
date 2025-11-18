@@ -19,12 +19,21 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Game {
   id: string;
   date: string;
   time: string;
   buyIn: number;
-  venue: string;
+  venue: string;  // Deprecated - use location_id instead
+  location_id?: string;  // Reference to Location
   status: 'upcoming' | 'in_progress' | 'completed';
   notes?: string;
   createdAt: string;

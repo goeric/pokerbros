@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Location } from '@/types';
 import Modal from './Modal';
 import Button from './Button';
 import { formatDate, formatDateWithDay, formatTime } from '@/lib/utils';
@@ -9,7 +11,7 @@ interface GameFormData {
   date: string;
   time: string;
   buyIn: number;
-  venue: string;
+  location_id: string;
   notes: string;
 }
 
@@ -31,9 +33,30 @@ export default function GameFormModal({
   const [date, setDate] = useState(initialData?.date || '');
   const [time, setTime] = useState(initialData?.time || '19:00');
   const [buyIn, setBuyIn] = useState(initialData?.buyIn || 20);
-  const [venue, setVenue] = useState(initialData?.venue || '');
+  const [locationId, setLocationId] = useState(initialData?.location_id || '');
   const [notes, setNotes] = useState(initialData?.notes || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+
+  // Fetch locations on mount
+  useEffect(() => {
+    async function fetchLocations() {
+      if (!supabase) return;
+      const { data } = await supabase
+        .from('locations')
+        .select('*')
+        .order('name');
+      if (data) {
+        const typedData = data as Location[];
+        setLocations(typedData);
+        // If no location selected yet and we have locations, select the first one
+        if (!locationId && typedData.length > 0) {
+          setLocationId(typedData[0].id);
+        }
+      }
+    }
+    fetchLocations();
+  }, []);
 
   // Update form when initialData changes (for edit mode)
   useEffect(() => {
@@ -41,7 +64,7 @@ export default function GameFormModal({
       setDate(initialData.date || '');
       setTime(initialData.time || '19:00');
       setBuyIn(initialData.buyIn || 20);
-      setVenue(initialData.venue || '');
+      setLocationId(initialData.location_id || '');
       setNotes(initialData.notes || '');
     }
   }, [initialData]);
@@ -51,14 +74,14 @@ export default function GameFormModal({
     setIsSubmitting(true);
 
     try {
-      await onSubmit({ date, time, buyIn, venue, notes });
+      await onSubmit({ date, time, buyIn, location_id: locationId, notes });
 
       // Reset form only for create mode
       if (mode === 'create') {
         setDate('');
         setTime('19:00');
         setBuyIn(20);
-        setVenue('');
+        setLocationId(locations[0]?.id || '');
         setNotes('');
       }
     } finally {
@@ -66,7 +89,8 @@ export default function GameFormModal({
     }
   };
 
-  const isFormValid = date && time && buyIn > 0 && venue;
+  const isFormValid = date && time && buyIn > 0 && locationId;
+  const selectedLocation = locations.find(l => l.id === locationId);
   const title = mode === 'create' ? 'Host New Game' : 'Edit Game';
   const submitLabel = mode === 'create' ? 'Create Game' : 'Save Changes';
 
@@ -138,16 +162,31 @@ export default function GameFormModal({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Venue / Location
+            Location
           </label>
-          <input
-            type="text"
-            value={venue}
-            onChange={(e) => setVenue(e.target.value)}
-            placeholder="e.g., Mike's Garage"
-            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-poker-green focus:border-transparent"
+          <select
+            value={locationId}
+            onChange={(e) => setLocationId(e.target.value)}
+            className="w-full px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:ring-2 focus:ring-poker-green focus:border-transparent"
             required
-          />
+          >
+            <option value="">Select a location...</option>
+            {locations.map(location => (
+              <option key={location.id} value={location.id}>
+                {location.name}
+              </option>
+            ))}
+          </select>
+          {selectedLocation && (
+            <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+              📍 {selectedLocation.address}
+            </p>
+          )}
+          {locations.length === 0 && (
+            <p className="text-amber-600 dark:text-amber-400 text-sm mt-1">
+              No locations available. <a href="/admin/locations" className="underline">Add one first</a>
+            </p>
+          )}
         </div>
 
         <div>
@@ -173,7 +212,7 @@ export default function GameFormModal({
                   {date && formatDate(date)}
                 </p>
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  {formatTime(time)} at {venue}
+                  {formatTime(time)} at {selectedLocation?.name || 'TBD'}
                 </p>
               </div>
               <div className="text-poker-gold-light dark:text-poker-gold-dark font-bold">

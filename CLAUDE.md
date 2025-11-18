@@ -43,8 +43,12 @@ npx tsc --noEmit
 npm run lint
 
 # Database migrations
-supabase migration new <migration_name>
-supabase db reset  # Reset database and run all migrations
+supabase migration new <migration_name>  # Create new migration file
+supabase db push  # Apply pending migrations to local database (PREFERRED - preserves data)
+
+# ⚠️ IMPORTANT: DO NOT use `supabase db reset` unless absolutely necessary!
+# db reset will WIPE ALL DATA and should ONLY be used with explicit user permission
+# For incremental changes, ALWAYS use `supabase db push` to preserve existing data
 
 # Run tests (when implemented)
 npm test

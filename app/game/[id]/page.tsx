@@ -66,13 +66,20 @@ export default async function GameDetailPage({ params }: GamePageProps) {
   }));
 
   if (!game) {
-    logger.error('[Game Page] Game not found', { gameId, error: gameRes.error });
+    logger.warn('[Game Page] Game not found (may have been deleted)', { gameId });
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-400">Game not found</p>
-        {gameRes.error && (
-          <p className="text-red-400 text-sm mt-2">{gameRes.error.message}</p>
-        )}
+        <p className="text-4xl mb-4">🎴</p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Game Not Found</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">
+          This game may have been deleted or doesn't exist.
+        </p>
+        <a
+          href="/"
+          className="inline-block px-6 py-3 bg-poker-green hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+        >
+          Back to Home
+        </a>
       </div>
     );
   }
