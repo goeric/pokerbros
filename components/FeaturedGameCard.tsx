@@ -82,37 +82,42 @@ export default function FeaturedGameCard({
             <span className="text-xs text-poker-gold font-bold">{confirmedCount}/8 Seats</span>
           </div>
 
-          {/* Stacked Avatars - Show up to 4 seats */}
+          {/* Stacked Avatars - Show up to 4 avatars + overflow indicator */}
           <div className="flex -space-x-3 mb-5 pl-2">
-            {Array.from({ length: Math.min(4, Math.max(4, confirmedCount)) }).map((_, idx) => {
-              const player = confirmedPlayers[idx];
+            {/* Show first 4 avatars */}
+            {confirmedPlayers.slice(0, 4).map((player, idx) => (
+              <img
+                key={player.id}
+                className="w-10 h-10 rounded-full border-2 border-gray-900 bg-gray-800 shadow-lg relative"
+                style={{ zIndex: 40 - idx * 10 }}
+                src={`/avatars/${player.avatar}`}
+                alt={`${player.first_name} ${player.last_name}`}
+                title={`${player.first_name} ${player.last_name}`}
+              />
+            ))}
 
-              if (player) {
-                // Filled seat - show player avatar
-                return (
-                  <img
-                    key={player.id}
-                    className="w-10 h-10 rounded-full border-2 border-gray-900 shadow-lg relative"
-                    style={{ zIndex: 40 - idx * 10 }}
-                    src={`/avatars/${player.avatar}`}
-                    alt={`${player.first_name} ${player.last_name}`}
-                    title={`${player.first_name} ${player.last_name}`}
-                  />
-                );
-              } else {
-                // Empty seat - show + sign
-                return (
-                  <div
-                    key={`empty-${idx}`}
-                    className="w-10 h-10 rounded-full border-2 border-gray-900 border-dashed bg-white/5 flex items-center justify-center text-sm font-bold text-gray-500 relative shadow-lg"
-                    style={{ zIndex: 40 - idx * 10 }}
-                    title="Open seat"
-                  >
-                    +
-                  </div>
-                );
-              }
-            })}
+            {/* Show +X indicator if more than 4 players */}
+            {confirmedCount > 4 && (
+              <div
+                className="w-10 h-10 rounded-full border-2 border-gray-900 bg-poker-gold/20 flex items-center justify-center text-xs font-bold text-poker-gold relative shadow-lg"
+                style={{ zIndex: 0 }}
+                title={`${confirmedCount - 4} more player${confirmedCount - 4 !== 1 ? 's' : ''}`}
+              >
+                +{confirmedCount - 4}
+              </div>
+            )}
+
+            {/* Show empty seats only if less than 4 confirmed */}
+            {confirmedCount < 4 && Array.from({ length: 4 - confirmedCount }).map((_, idx) => (
+              <div
+                key={`empty-${idx}`}
+                className="w-10 h-10 rounded-full border-2 border-gray-900 border-dashed bg-white/5 flex items-center justify-center text-sm font-bold text-gray-500 relative shadow-lg"
+                style={{ zIndex: 40 - (confirmedCount + idx) * 10 }}
+                title="Open seat"
+              >
+                +
+              </div>
+            ))}
           </div>
 
           {/* Action Button */}
