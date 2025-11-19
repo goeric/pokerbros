@@ -78,7 +78,7 @@ export default function GameCard({
             {/* Buy-in Badge */}
             <div className="flex items-center gap-2 px-4 py-2 bg-poker-gold/10 border border-poker-gold/20 rounded-full">
               <CurrencyDollar weight="bold" className="text-poker-gold" size={20} />
-              <span className="font-display font-bold text-poker-gold">{formatCurrency(game.buyIn)}</span>
+              <span className="font-display font-bold text-poker-gold">{game.buyIn}</span>
             </div>
           </div>
 
