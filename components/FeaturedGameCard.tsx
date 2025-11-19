@@ -37,23 +37,19 @@ export default function FeaturedGameCard({
       <div className="absolute inset-0 bg-gradient-to-r from-[#020906] via-[#0f392b]/90 to-transparent z-0"></div>
 
       {/* Floating Playing Cards Visual */}
-      <div className={`absolute right-12 top-12 transform transition-all duration-500 hidden md:block z-20 ${isHovered ? 'rotate-6 scale-110' : 'rotate-12'}`}>
+      <div className={`absolute right-12 top-12 transform transition-all duration-500 hidden md:block z-20 ${isHovered ? 'rotate-6' : 'rotate-12'}`}>
         <div className="relative drop-shadow-2xl">
           {/* Ace of Hearts - Back Card */}
-          <div className="absolute transform -rotate-12 -translate-x-12 translate-y-4 scale-110 origin-bottom-left">
-            <div className="w-[60px] h-[84px] bg-white rounded-lg shadow-2xl flex flex-col justify-between p-2 border border-gray-200">
-              <div className="text-red-600 font-display font-bold text-sm">A♥</div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-600 text-3xl">♥</div>
-              <div className="text-red-600 font-display font-bold text-sm text-right rotate-180">A♥</div>
-            </div>
+          <div className="playing-card red absolute transform -rotate-12 -translate-x-12 translate-y-4 scale-110 origin-bottom-left">
+            <div className="top-left">A♥</div>
+            <div className="suit-center">♥</div>
+            <div className="bottom-right absolute bottom-1 right-1 rotate-180">A♥</div>
           </div>
           {/* Ace of Spades - Front Card */}
-          <div className="relative z-10 scale-110">
-            <div className="w-[60px] h-[84px] bg-white rounded-lg shadow-2xl flex flex-col justify-between p-2 border-2 border-gray-300">
-              <div className="text-black font-display font-bold text-sm">A♠</div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-black text-3xl">♠</div>
-              <div className="text-black font-display font-bold text-sm text-right rotate-180">A♠</div>
-            </div>
+          <div className="playing-card black z-10 relative scale-110 border border-gray-300">
+            <div className="top-left">A♠</div>
+            <div className="suit-center">♠</div>
+            <div className="bottom-right absolute bottom-1 right-1 rotate-180">A♠</div>
           </div>
         </div>
       </div>
