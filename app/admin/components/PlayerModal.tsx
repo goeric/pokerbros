@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react';
 import { Player } from '@/types';
-import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import { createPlayer, updatePlayer } from '../actions';
 
@@ -48,16 +47,16 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
       onClose={onClose}
       title={player ? 'Edit Player' : 'Add Player'}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-sm">
+          <div className="bg-red-500/20 border-2 border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm font-semibold">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="first_name" className="block text-sm font-semibold text-gray-300 mb-2">
               First Name *
             </label>
             <input
@@ -67,13 +66,13 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
               defaultValue={player?.first_name || ''}
               required
               disabled={isPending}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+              className="w-full px-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all disabled:opacity-50"
               placeholder="John"
             />
           </div>
 
           <div>
-            <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="last_name" className="block text-sm font-semibold text-gray-300 mb-2">
               Last Name *
             </label>
             <input
@@ -83,14 +82,14 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
               defaultValue={player?.last_name || ''}
               required
               disabled={isPending}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+              className="w-full px-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all disabled:opacity-50"
               placeholder="Doe"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="nickname" className="block text-sm font-semibold text-gray-300 mb-2">
             Nickname
           </label>
           <input
@@ -99,13 +98,13 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
             type="text"
             defaultValue={player?.nickname || ''}
             disabled={isPending}
-            className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+            className="w-full px-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all disabled:opacity-50"
             placeholder="The Shark (optional)"
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
             Email *
           </label>
           <input
@@ -115,29 +114,27 @@ export default function PlayerModal({ isOpen, onClose, player }: PlayerModalProp
             defaultValue={player?.email || ''}
             required
             disabled={isPending}
-            className="w-full px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50"
+            className="w-full px-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white placeholder-gray-500 focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all disabled:opacity-50"
             placeholder="john@example.com"
           />
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            fullWidth
             disabled={isPending}
+            className="flex-1 px-6 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all border border-yellow-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isPending ? 'Saving...' : player ? 'Update Player' : 'Add Player'}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="secondary"
-            fullWidth
             onClick={onClose}
             disabled={isPending}
+            className="flex-1 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
-          </Button>
+          </button>
         </div>
       </form>
     </Modal>
