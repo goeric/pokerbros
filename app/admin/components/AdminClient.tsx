@@ -104,8 +104,9 @@ export default function AdminClient({ initialPlayers, canEdit, userRole }: Admin
       {/* Players List */}
       {initialPlayers.length === 0 ? (
         <div className="glass-panel rounded-2xl p-16 text-center border border-white/10">
-          <Users weight="fill" className="text-gray-600 text-6xl mx-auto mb-4" />
-          <p className="text-gray-400 text-lg mb-6">No players yet</p>
+          <Users weight="fill" className="text-poker-gold/50 text-6xl mx-auto mb-4 animate-gold-pulse" />
+          <p className="text-white font-display text-xl font-bold mb-2">No players yet</p>
+          <p className="text-gray-400 text-sm mb-6">Add your first player to get started</p>
           {canEdit && (
             <button
               onClick={() => handleOpenModal()}

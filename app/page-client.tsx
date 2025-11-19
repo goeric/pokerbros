@@ -286,8 +286,10 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                 );
               })}
               {upcomingGamesList.length === 0 && (
-                <div className="glass-panel p-6 text-center rounded-xl">
-                  <p className="text-gray-400 text-sm">No upcoming games</p>
+                <div className="glass-panel p-8 text-center rounded-xl border border-white/10">
+                  <CalendarDots weight="bold" className="text-poker-gold/50 mx-auto mb-3" size={40} />
+                  <p className="text-gray-400 text-sm font-medium mb-1">No future games</p>
+                  <p className="text-gray-500 text-xs">Check back soon</p>
                 </div>
               )}
             </div>

@@ -157,27 +157,31 @@ export default function GameDetailClient({
       {/* Toast Notification */}
       {showToast && toastData && (
         <div
-          className={`fixed top-4 right-4 z-50 max-w-md glass-panel border-2 ${
+          className={`fixed top-20 right-4 z-50 max-w-md glass-panel backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] px-6 py-4 rounded-2xl transform transition-all duration-300 animate-slide-in ${
             toastData.type === 'success'
-              ? 'border-green-500 bg-green-950/90'
-              : 'border-red-500 bg-red-950/90'
-          } backdrop-blur-xl shadow-2xl px-6 py-4 rounded-xl transform transition-all duration-300 animate-slide-in`}
+              ? 'border-2 border-poker-gold/50 bg-black/80'
+              : 'border-2 border-red-500/50 bg-black/80'
+          }`}
         >
           <div className="flex items-center gap-3">
             {toastData.type === 'success' ? (
-              <Check weight="bold" className="text-green-400 text-2xl flex-shrink-0" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-poker-gold/20 border border-poker-gold/30 flex items-center justify-center">
+                <Check weight="bold" className="text-poker-gold" size={20} />
+              </div>
             ) : (
-              <X weight="bold" className="text-red-400 text-2xl flex-shrink-0" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center">
+                <X weight="bold" className="text-red-400" size={20} />
+              </div>
             )}
-            <p className="font-medium text-white">{toastData.text}</p>
+            <p className="font-medium text-white flex-1">{toastData.text}</p>
             <button
               onClick={() => {
                 setShowToast(false);
                 router.replace(`/game/${game.id}`, { scroll: false });
               }}
-              className="ml-auto text-white/60 hover:text-white transition-colors"
+              className="ml-2 text-gray-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
             >
-              <X size={20} weight="bold" />
+              <X size={18} weight="bold" />
             </button>
           </div>
         </div>
@@ -185,11 +189,15 @@ export default function GameDetailClient({
 
       {/* Promotion Banner */}
       {showPromotion && (
-        <div className="mb-6 glass-panel border-2 border-green-500 bg-green-950/50 rounded-xl p-4 animate-slide-in">
-          <p className="text-green-400 font-bold flex items-center gap-2">
-            <Trophy weight="fill" size={24} className="text-poker-gold" />
-            You've been promoted from the waitlist!
-          </p>
+        <div className="mb-6 glass-panel border-2 border-poker-gold/50 bg-black/60 backdrop-blur-xl rounded-2xl p-5 animate-slide-in shadow-[0_8px_32px_rgba(212,175,55,0.2)]">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-poker-gold/20 border border-poker-gold/30 flex items-center justify-center">
+              <Trophy weight="fill" size={24} className="text-poker-gold" />
+            </div>
+            <p className="text-white font-display font-bold text-lg">
+              You've been promoted from the waitlist!
+            </p>
+          </div>
         </div>
       )}
 

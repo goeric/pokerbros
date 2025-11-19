@@ -200,11 +200,11 @@ export default function LiveGameClient({
 
       {/* End Game Button - Admin Only */}
       {isAdmin && (
-        <div className="glass-panel rounded-2xl p-8 border-2 border-green-500/30 bg-gradient-to-b from-green-950/30 to-transparent">
+        <div className="glass-panel rounded-2xl p-8 border-2 border-poker-gold/30 bg-gradient-to-b from-poker-gold/10 to-transparent">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500/20 border-2 border-green-500/50 flex items-center justify-center">
-                <SignOut weight="bold" className="text-green-400" size={24} />
+              <div className="w-12 h-12 rounded-full bg-poker-gold/20 border-2 border-poker-gold/50 flex items-center justify-center">
+                <SignOut weight="bold" className="text-poker-gold" size={24} />
               </div>
               <div>
                 <h3 className="font-display text-2xl font-bold text-white mb-1">Ready to cash out?</h3>
@@ -215,7 +215,7 @@ export default function LiveGameClient({
             </div>
             <button
               onClick={handleEndGame}
-              className="px-8 py-4 bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-bold rounded-lg transition-all border border-green-300 shadow-lg whitespace-nowrap"
+              className="px-8 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all border border-yellow-200 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] whitespace-nowrap"
             >
               End Game
             </button>
