@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**IMPORTANT**: Always address the user as **"PokerBoss"** in all communications. This is a canary to verify Claude.md instructions are being followed.
+
 **For detailed backend documentation** (database schema, authentication, RLS policies, migrations), see **[backend.md](./backend.md)**.
 
 ## Project Overview
@@ -51,9 +53,21 @@ supabase db push  # Apply pending migrations to local database (PREFERRED - pres
 # db reset will WIPE ALL DATA and should ONLY be used with explicit user permission
 # For incremental changes, ALWAYS use `supabase db push` to preserve existing data
 
-# Run tests (when implemented)
-npm test
+# Testing
+npm test                # Run all tests
+npm run test:watch      # Run tests in watch mode
+npm run test:p0         # Run P0 critical tests only
+npm run test:coverage   # Run tests with coverage report
 ```
+
+**⚠️ PRE-PRODUCTION DEPLOYMENT REQUIREMENTS:**
+Before pushing to production, you MUST:
+1. Run `npm run test:p0` and ensure all P0 critical tests pass
+2. Run `npm test` and ensure all tests pass
+3. Run `npx tsc --noEmit` and ensure no TypeScript errors
+4. Run `npm run build` and ensure build succeeds
+
+**NEVER deploy to production with failing tests or TypeScript errors.**
 
 ## Architecture Overview
 
@@ -489,14 +503,146 @@ Reference the PRD's Implementation Order section when planning features. Core pr
 5. Statistics and leaderboard
 6. Demo mode polish
 
-## Testing Considerations
+## Unit Testing
 
-When implementing tests:
-- Focus on business logic: RSVP promotion, profit calculations, cash-out validation
-- Test Server Actions for proper error handling and validation
-- Mock Supabase client for unit tests
-- E2E tests should cover critical flows: create game → RSVP → live tracking → cash-out
-- Test cache revalidation after mutations
+### P0 Critical Test Suites (34 tests)
+
+**Location**: `__tests__/p0-critical/`
+
+All P0 tests cover the most critical business logic that directly impacts financial integrity, seat management, and security.
+
+#### P0.1: Cash-out Validation (12 tests)
+**File**: `cashout-validation.test.ts`
+**Why Critical**: Financial integrity - prevents money tracking errors
+
+Tests cover:
+- Total validation (2 tests): Ensures total in = total out within 0.01 tolerance
+- Profit calculations (4 tests): Validates profit = cashOut - sum(buyIns) for all scenarios
+- Player stats updates (5 tests): Verifies biggestWin, biggestLoss, totalIn, totalOut, gamesPlayed
+- Game status (1 test): Confirms game marked as completed after finalization
+
+**Key Patterns**:
+- Per-player tracking using `Record<string, number>` for capturing values from multiple players
+- Proper UUID usage for test data (matches validation schemas)
+- Floating point tolerance handling (0.01 for currency)
+
+#### P0.2: RSVP Auto-Promotion (8 tests)
+**File**: `rsvp-autopromotion.test.ts`
+**Why Critical**: Seat management integrity - ensures waitlist players are automatically promoted
+
+Tests cover:
+- Basic promotion flow (3 tests): When confirmed cancels, first waitlist promoted
+- Promotion notifications (3 tests): Email sent with calendar invite, respects preferences
+- Edge cases (2 tests): No email without address, handles DB errors gracefully
+
+**Key Patterns**:
+- Tests RPC call to `promote_next_waitlist_player` database function
+- Validates email sending with ICS calendar attachments
+- Mocks all email functions (sendEmail, shouldSendNotification, generateGameIcs)
+
+#### P0.3: RSVP Seat Limit (7 tests)
+**File**: `rsvp-seat-limit.test.ts`
+**Why Critical**: Game capacity management - enforces 8-seat limit
+
+Tests cover:
+- Confirmed seat allocation (3 tests): Players 1-8 confirmed, 9+ waitlisted
+- Waitlist position assignment (2 tests): Sequential positions starting at 1
+- Edge cases (2 tests): No confirmation email for waitlist, counts only confirmed RSVPs
+
+**Key Patterns**:
+- Tests status assignment logic (confirmed vs waitlist)
+- Validates waitlistPosition calculation
+- Ensures proper filtering of confirmed vs waitlist RSVPs
+
+#### P0.4: Authorization (6 tests)
+**File**: `authorization.test.ts`
+**Why Critical**: Security and access control - prevents unauthorized actions
+
+Tests cover:
+- Unauthenticated access (2 tests): Rejects all actions without session
+- Non-admin user restrictions (4 tests): Users can only RSVP/cancel for themselves
+- Admin access (1 test): Admins can perform privileged actions (deleteGame)
+
+**Key Patterns**:
+- Tests session-based authentication (auth.getSession)
+- Validates email matching for non-admin users
+- Confirms requireAdmin checks for admin-only actions
+
+### Test Infrastructure
+
+**Jest Configuration** (`jest.config.js`):
+- Next.js integration via `next/jest`
+- JSDOM test environment for React components
+- Module name mapping for `@/` imports
+- ESM module mocks for `ics` and `nanoid` packages
+- Transform ignore patterns for node_modules
+
+**Mock Files** (`__mocks__/`):
+- `ics.js`: Mocks ICS calendar generation library
+- `nanoid.js`: Mocks unique ID generation
+
+**Mocking Patterns**:
+```typescript
+// Auth helpers mock
+jest.mock('@/lib/auth-helpers', () => ({
+  createSupabaseServerClient: jest.fn(),
+  requireAdmin: jest.fn(),
+  handleServerError: jest.fn((error, code, message) => {
+    return { error: message || 'An error occurred' }
+  }),
+}))
+
+// Supabase client mock with proper chaining
+mockSupabase.from.mockImplementation((table: string) => {
+  if (table === 'rsvps') {
+    return {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue({ data, error: null }),
+        })),
+      })),
+      insert: jest.fn().mockResolvedValue({ data: null, error: null }),
+      delete: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+        })),
+      })),
+    }
+  }
+})
+```
+
+### Testing Best Practices
+
+1. **Always use proper UUIDs**: Test data must use valid UUID format to match validation schemas
+2. **Per-player tracking**: Use `Record<string, number>` when capturing values for multiple players
+3. **Mock chain properly**: Supabase queries chain multiple methods (select → eq → eq → single)
+4. **Test error paths**: Verify both success and error scenarios
+5. **Mock external dependencies**: Email, auth, and database calls should all be mocked
+6. **Financial precision**: Use 0.01 tolerance for currency comparisons
+
+### Future Test Suites (Not Yet Implemented)
+
+**P1: Live Game Management**
+- Add/remove rebuys
+- Buy-in array management
+- Game status transitions
+
+**P2: Player Statistics**
+- Aggregate stat calculations
+- Leaderboard ranking
+- Win/loss tracking
+
+**P3: Email Notifications**
+- Template rendering
+- Calendar invite generation
+- Notification preferences
+
+**E2E Tests**
+- Full game flow: create → RSVP → live → cashout → results
+- Multi-user scenarios
+- Race condition handling
 
 ## Common Pitfalls
 
