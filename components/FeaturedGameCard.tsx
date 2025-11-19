@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Game, Player } from '@/types';
-import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
+import { formatDate, formatDateWithDay, formatTime, formatCurrency } from '@/lib/utils';
 import { Coins } from '@phosphor-icons/react';
 
 interface FeaturedGameCardProps {
@@ -57,7 +57,7 @@ export default function FeaturedGameCard({
             <div className="flex flex-col">
               <span className="text-xs text-gray-400 uppercase tracking-wider mb-1">Date</span>
               <span className="font-display text-lg md:text-xl text-white font-medium">
-                {formatDate(game.date).split(',')[1].trim()}
+                {formatDateWithDay(game.date)}
               </span>
             </div>
             <div className="flex flex-col sm:border-l border-white/10 sm:pl-4">
@@ -82,26 +82,37 @@ export default function FeaturedGameCard({
             <span className="text-xs text-poker-gold font-bold">{confirmedCount}/8 Seats</span>
           </div>
 
-          {/* Stacked Avatars */}
+          {/* Stacked Avatars - Show up to 4 seats */}
           <div className="flex -space-x-3 mb-5 pl-2">
-            {confirmedPlayers.slice(0, 3).map((player, idx) => (
-              <img
-                key={player.id}
-                className={`w-10 h-10 rounded-full border-2 border-gray-900 shadow-lg relative`}
-                style={{ zIndex: 30 - idx * 10 }}
-                src={`/avatars/${player.avatar}`}
-                alt={`${player.first_name} ${player.last_name}`}
-                title={`${player.first_name} ${player.last_name}`}
-              />
-            ))}
-            {confirmedCount > 3 && (
-              <div
-                className="w-10 h-10 rounded-full border-2 border-gray-900 bg-poker-gold/20 flex items-center justify-center text-xs font-bold text-poker-gold relative shadow-lg"
-                style={{ zIndex: 10 }}
-              >
-                +{confirmedCount - 3}
-              </div>
-            )}
+            {Array.from({ length: Math.min(4, Math.max(4, confirmedCount)) }).map((_, idx) => {
+              const player = confirmedPlayers[idx];
+
+              if (player) {
+                // Filled seat - show player avatar
+                return (
+                  <img
+                    key={player.id}
+                    className="w-10 h-10 rounded-full border-2 border-gray-900 shadow-lg relative"
+                    style={{ zIndex: 40 - idx * 10 }}
+                    src={`/avatars/${player.avatar}`}
+                    alt={`${player.first_name} ${player.last_name}`}
+                    title={`${player.first_name} ${player.last_name}`}
+                  />
+                );
+              } else {
+                // Empty seat - show + sign
+                return (
+                  <div
+                    key={`empty-${idx}`}
+                    className="w-10 h-10 rounded-full border-2 border-gray-900 border-dashed bg-white/5 flex items-center justify-center text-sm font-bold text-gray-500 relative shadow-lg"
+                    style={{ zIndex: 40 - idx * 10 }}
+                    title="Open seat"
+                  >
+                    +
+                  </div>
+                );
+              }
+            })}
           </div>
 
           {/* Action Button */}

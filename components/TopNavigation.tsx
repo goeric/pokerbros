@@ -106,7 +106,7 @@ export default function TopNavigation({ isAdmin, user, role, playerAvatar = 'ava
                   href="/login"
                   className="ml-4 px-4 py-2 bg-gradient-to-b from-poker-gold to-yellow-600 text-black font-bold text-sm rounded-lg hover:from-poker-goldlight hover:to-poker-gold transition-all border border-yellow-300"
                 >
-                  Admin Login
+                  Login
                 </Link>
               )}
             </div>
@@ -184,7 +184,7 @@ export default function TopNavigation({ isAdmin, user, role, playerAvatar = 'ava
                     href="/login"
                     className="block w-full py-3 px-4 text-center bg-gradient-to-b from-poker-gold to-yellow-600 text-black font-bold rounded-lg hover:from-poker-goldlight hover:to-poker-gold transition-all border border-yellow-300"
                   >
-                    Admin Login
+                    Login
                   </Link>
                 )}
               </div>

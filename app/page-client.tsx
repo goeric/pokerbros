@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
-import { formatDate, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
+import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
@@ -226,33 +226,60 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
             <div className="space-y-4">
               {upcomingGamesList.slice(liveGames.length > 0 ? 0 : 1, 4).map(game => {
                 const { confirmed, waitlist } = getRsvpCounts(game.id);
+                const dateWithDay = formatDateWithDay(game.date); // e.g., "Fri, Jan 16"
+                const [dayOfWeek, monthDay] = dateWithDay.split(','); // ["Fri", " Jan 16"]
+
+                // Get confirmed players for this game
+                const confirmedPlayers = rsvps
+                  .filter(r => r.gameId === game.id && r.status === 'confirmed')
+                  .map(r => players.find(p => p.id === r.playerId))
+                  .filter((p): p is Player => p !== undefined);
+
                 return (
-                  <a key={game.id} href={`/game/${game.id}`} className="block glass-panel p-4 rounded-xl hover:bg-white/5 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CalendarDots weight="bold" className="text-poker-gold" size={16} />
-                          <p className="font-display font-bold text-white text-sm">
-                            {formatDate(game.date).split(',')[1].trim()}
+                  <a key={game.id} href={`/game/${game.id}`} className="block glass-panel p-4 rounded-xl hover:bg-white/5 transition-colors border border-white/5 hover:border-poker-gold/30">
+                    <div className="space-y-3">
+                      {/* Day of Week + Date */}
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-poker-gold font-bold mb-1">
+                          {dayOfWeek}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <CalendarDots weight="bold" className="text-poker-gold" size={18} />
+                          <p className="font-display font-bold text-white text-lg">
+                            {monthDay.trim()}
                           </p>
                         </div>
-                        <p className="text-xs text-gray-400">
-                          {formatTime(game.time)} • {formatCurrency(game.buyIn)}
-                        </p>
-                        <div className="flex items-center gap-1 mt-2">
-                          {[...Array(Math.min(8, confirmed))].map((_, i) => (
-                            <div key={i} className="w-1 h-1 rounded-full bg-poker-gold" />
-                          ))}
-                          {[...Array(Math.max(0, 8 - confirmed))].map((_, i) => (
-                            <div key={i} className="w-1 h-1 rounded-full bg-gray-700" />
+                      </div>
+
+                      {/* Time & Buy-in */}
+                      <p className="text-sm text-gray-400">
+                        {formatTime(game.time)} • {formatCurrency(game.buyIn)}
+                      </p>
+
+                      {/* Player Avatars */}
+                      {confirmedPlayers.length > 0 && (
+                        <div className="flex -space-x-2 flex-wrap gap-y-1">
+                          {confirmedPlayers.slice(0, 8).map((player, idx) => (
+                            <img
+                              key={player.id}
+                              src={`/avatars/${player.avatar}`}
+                              alt={formatPlayerName(player)}
+                              title={formatPlayerName(player)}
+                              className="w-7 h-7 rounded-full border-2 border-gray-900 shadow-lg"
+                              style={{ zIndex: 80 - idx * 10 }}
+                            />
                           ))}
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500 mb-1">
-                          {formatDate(game.date).split(',')[0]}
-                        </p>
-                        <p className="text-xs text-gray-500">{formatDate(game.date).split(',')[1].split(' ')[1]}</p>
+                      )}
+
+                      {/* Seat Indicator */}
+                      <div className="flex items-center gap-1">
+                        {[...Array(Math.min(8, confirmed))].map((_, i) => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-poker-gold" />
+                        ))}
+                        {[...Array(Math.max(0, 8 - confirmed))].map((_, i) => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-700" />
+                        ))}
                       </div>
                     </div>
                   </a>

@@ -17,7 +17,6 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
   const [showAvatarDrawer, setShowAvatarDrawer] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(player.avatar);
   const [nickname, setNickname] = useState(player.nickname || '');
-  const [favoriteHand, setFavoriteHand] = useState('');
   const [notifications, setNotifications] = useState<NotificationPreferences>(
     player.notification_preferences
   );
@@ -134,14 +133,6 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
               <span className="text-sm font-bold text-green-400">Active</span>
             </div>
           </div>
-
-          <button
-            onClick={() => setShowAvatarDrawer(true)}
-            className="w-full mt-6 py-3 rounded-lg border border-poker-gold/30 text-poker-gold hover:bg-poker-gold/10 transition-colors font-bold flex items-center justify-center gap-2"
-          >
-            <UserSwitch weight="bold" size={20} />
-            Open Avatar Vault
-          </button>
         </div>
 
         {/* Right Column: Edit & Stats */}
@@ -177,7 +168,7 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
                   className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 hover:border-poker-gold/30 focus:border-poker-gold focus:outline-none focus:ring-2 focus:ring-poker-gold/20 text-white font-medium transition-colors"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-bold">
                   Email Address
                 </label>
@@ -186,18 +177,6 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
                   value={player.email}
                   disabled
                   className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 text-gray-400 font-medium cursor-not-allowed"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-gray-400 font-bold">
-                  Favorite Hand
-                </label>
-                <input
-                  type="text"
-                  value={favoriteHand}
-                  onChange={(e) => setFavoriteHand(e.target.value)}
-                  placeholder="e.g., Pocket Aces"
-                  className="w-full px-4 py-3 rounded-lg bg-black/20 border border-white/10 hover:border-poker-gold/30 focus:border-poker-gold focus:outline-none focus:ring-2 focus:ring-poker-gold/20 text-white font-medium transition-colors"
                 />
               </div>
             </div>
