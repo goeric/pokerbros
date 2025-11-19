@@ -28,9 +28,12 @@ Add automated email reminders for upcoming poker games to reduce no-shows and ke
 - ICS calendar generation
 
 ✅ **Email Templates:**
-- `GameReminder.tsx` - Single template handling both 24h and 3h reminders
+- `GameReminder.tsx` - **Already created** at `/emails/templates/GameReminder.tsx`
+- Single template handling both 24h and 3h reminders
 - Accepts `timing: '24h' | '3h'` prop for different messaging
+- Includes personalized greeting, game details, and conditional "bring cash" reminder for 24h emails
 - No ICS attachment (players already have calendar event from RSVP confirmation)
+- Ready to use - just needs to be wired up to cron system
 
 ✅ **Data Model:**
 - Games table with date/time
