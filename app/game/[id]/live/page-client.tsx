@@ -3,12 +3,10 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency } from '@/lib/utils';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import ChipIcon from '@/components/ChipIcon';
+import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import { addRebuy, removeLastRebuy } from './actions';
+import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy } from '@phosphor-icons/react';
 
 interface LiveGameClientProps {
   game: Game;
@@ -73,49 +71,58 @@ export default function LiveGameClient({
 
       {/* Live Header */}
       <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse-soft"></span>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Live Game</h1>
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <span className="w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.8)]"></span>
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-white drop-shadow-lg">Live Game</h1>
         </div>
-        <p className="text-gray-600 dark:text-gray-400">Track buy-ins and rebuys in real-time</p>
+        <p className="text-gray-400 text-lg">Track buy-ins and rebuys in real-time</p>
       </div>
 
       {/* Total Pot Display */}
-      <Card className="p-8 mb-8 text-center card-gradient">
-        <p className="text-gray-600 dark:text-gray-400 text-sm uppercase tracking-wide mb-2">Total Pot</p>
-        <div className="flex items-center justify-center gap-3">
-          <ChipIcon className="w-12 h-12 text-poker-gold-light dark:text-poker-gold-dark" />
-          <p className="text-6xl font-bold text-poker-gold-light dark:text-poker-gold-dark">
+      <div className="glass-panel rounded-2xl p-10 mb-8 text-center border-2 border-poker-gold/30 bg-gradient-to-b from-poker-gold/10 to-transparent shadow-[0_0_50px_rgba(212,175,55,0.2)]">
+        <p className="text-gray-400 text-sm uppercase tracking-widest mb-4 font-bold">Total Pot</p>
+        <div className="flex items-center justify-center gap-4">
+          <CurrencyDollar weight="fill" className="text-poker-gold text-6xl animate-gold-pulse" />
+          <p className="font-display text-7xl md:text-8xl font-bold text-poker-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]">
             {formatCurrency(totalPot)}
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Game Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <Card className="p-4">
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Players</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{gamePlayers.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Rebuys</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="glass-panel rounded-xl p-6 border border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <Users weight="bold" className="text-blue-400" size={24} />
+            <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Players</p>
+          </div>
+          <p className="text-3xl font-display font-bold text-white">{gamePlayers.length}</p>
+        </div>
+        <div className="glass-panel rounded-xl p-6 border border-white/10">
+          <div className="flex items-center gap-3 mb-2">
+            <Fire weight="fill" className="text-orange-400" size={24} />
+            <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Rebuys</p>
+          </div>
+          <p className="text-3xl font-display font-bold text-white">
             {gamePlayers.reduce((sum, gp) => sum + gp.buyIns.length - 1, 0)}
           </p>
-        </Card>
-        <Card className="p-4 col-span-2 md:col-span-1">
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Most Rebuys</p>
+        </div>
+        <div className="glass-panel rounded-xl p-6 border border-white/10 col-span-2 md:col-span-1">
+          <div className="flex items-center gap-3 mb-2">
+            <Trophy weight="fill" className="text-amber-400" size={24} />
+            <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Most Rebuys</p>
+          </div>
           {mostRebuys ? (
-            <p className="text-lg font-bold text-amber-700 dark:text-amber-400 truncate">
+            <p className="text-xl font-display font-bold text-amber-400 truncate">
               {players.find(p => p.id === mostRebuys.playerId)?.first_name}
             </p>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🎯</span>
-              <p className="text-sm text-gray-500 dark:text-gray-400 italic">Playing tight!</p>
+              <Target weight="bold" className="text-green-400" size={20} />
+              <p className="text-sm text-gray-400 italic">Playing tight!</p>
             </div>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* Player Grid */}
@@ -128,32 +135,37 @@ export default function LiveGameClient({
           const rebuyCount = gamePlayer.buyIns.length - 1;
 
           return (
-            <Card key={gamePlayer.id} className="p-6 relative overflow-hidden">
+            <div key={gamePlayer.id} className="glass-panel rounded-2xl p-6 border border-white/10 relative overflow-hidden hover:border-poker-gold/30 transition-all group">
               {/* Coin Animation */}
               {coinAnimation === gamePlayer.id && (
-                <div className="absolute top-4 right-4 animate-coin-drop">
-                  <ChipIcon className="w-8 h-8 text-poker-gold-light dark:text-poker-gold-dark" />
+                <div className="absolute top-4 right-4 animate-coin-drop z-10">
+                  <CurrencyDollar weight="fill" className="w-12 h-12 text-poker-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]" />
                 </div>
               )}
 
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                    {player.first_name} {player.nickname ? `"${player.nickname}"` : ''} {player.last_name}
+              <div className="flex items-start gap-4 mb-6">
+                <img
+                  src={`/avatars/${player.avatar}`}
+                  alt={formatPlayerName(player)}
+                  className="w-16 h-16 rounded-full border-2 border-poker-gold/50 shadow-lg flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-xl font-bold text-white mb-1 truncate">
+                    {formatPlayerName(player)}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-gray-400 text-sm font-medium">
                       {gamePlayer.buyIns.length} buy-in{gamePlayer.buyIns.length !== 1 ? 's' : ''}
                     </span>
                     {rebuyCount > 0 && (
-                      <span className="text-amber-700 dark:text-amber-400 text-sm font-medium">
-                        ({rebuyCount} rebuy{rebuyCount !== 1 ? 's' : ''})
+                      <span className="px-2 py-0.5 bg-orange-950/50 border border-orange-500/50 text-orange-400 text-xs font-bold rounded">
+                        {rebuyCount} rebuy{rebuyCount !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-poker-gold-light dark:text-poker-gold-dark">
+                <div className="text-right flex-shrink-0">
+                  <p className="font-display text-3xl font-bold text-poker-gold">
                     {formatCurrency(totalBuyIn)}
                   </p>
                 </div>
@@ -161,50 +173,54 @@ export default function LiveGameClient({
 
               {isAdmin && (
                 <div className="space-y-2">
-                  <Button
+                  <button
                     onClick={() => handleAddRebuy(gamePlayer.id)}
-                    variant="secondary"
-                    fullWidth
                     disabled={isPending}
-                    className="flex items-center justify-center gap-2"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-bold rounded-lg transition-all border border-yellow-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <ChipIcon className="w-5 h-5" />
+                    <Plus weight="bold" size={20} />
                     Add Rebuy +{formatCurrency(game.buyIn)}
-                  </Button>
+                  </button>
                   {rebuyCount > 0 && (
-                    <Button
+                    <button
                       onClick={() => handleRemoveRebuy(gamePlayer.id)}
-                      variant="ghost"
-                      fullWidth
                       disabled={isPending}
-                      className="flex items-center justify-center gap-2 text-sm"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 font-bold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <span className="text-red-600 dark:text-red-400">✕</span>
+                      <Minus weight="bold" size={16} />
                       Remove Last Rebuy
-                    </Button>
+                    </button>
                   )}
                 </div>
               )}
-            </Card>
+            </div>
           );
         })}
       </div>
 
       {/* End Game Button - Admin Only */}
       {isAdmin && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">Ready to cash out?</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                End the game and record everyone's final cash-out amounts
-              </p>
+        <div className="glass-panel rounded-2xl p-8 border-2 border-green-500/30 bg-gradient-to-b from-green-950/30 to-transparent">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-500/20 border-2 border-green-500/50 flex items-center justify-center">
+                <SignOut weight="bold" className="text-green-400" size={24} />
+              </div>
+              <div>
+                <h3 className="font-display text-2xl font-bold text-white mb-1">Ready to cash out?</h3>
+                <p className="text-gray-400 text-sm">
+                  End the game and record everyone's final cash-out amounts
+                </p>
+              </div>
             </div>
-            <Button onClick={handleEndGame} variant="primary">
+            <button
+              onClick={handleEndGame}
+              className="px-8 py-4 bg-gradient-to-b from-green-500 to-green-600 hover:from-green-400 hover:to-green-500 text-white font-bold rounded-lg transition-all border border-green-300 shadow-lg whitespace-nowrap"
+            >
               End Game
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
       )}
     </>
   );

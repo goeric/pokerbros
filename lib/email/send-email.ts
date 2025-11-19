@@ -185,13 +185,19 @@ export async function sendEmail({
 
 /**
  * Send email to all players with email notifications enabled
+ *
+ * @param subject - Email subject line
+ * @param react - React email template
+ * @param notificationType - Optional notification type to filter by preferences
  */
 export async function sendToAllPlayers({
   subject,
   react,
+  notificationType,
 }: {
   subject: string;
   react: React.ReactElement;
+  notificationType?: import('@/lib/email/check-preferences').NotificationType;
 }): Promise<EmailResult> {
   try {
     const cookieStore = await cookies();
@@ -211,7 +217,7 @@ export async function sendToAllPlayers({
     // Get all players with email notifications enabled
     const { data: players } = await supabase
       .from('players')
-      .select('email')
+      .select('email, notification_preferences')
       .eq('email_notifications', true)
       .not('email', 'is', null);
 
@@ -220,7 +226,18 @@ export async function sendToAllPlayers({
       return { success: true, skipped: true };
     }
 
-    const playerEmails = players.map((p) => p.email).filter(Boolean) as string[];
+    let playerEmails = players.map((p) => p.email).filter(Boolean) as string[];
+
+    // Filter by specific notification type if provided
+    if (notificationType) {
+      const { filterByNotificationPreference } = await import('@/lib/email/check-preferences');
+      playerEmails = await filterByNotificationPreference(playerEmails, notificationType);
+
+      if (playerEmails.length === 0) {
+        console.log(`[EMAIL] No players want "${notificationType}" notifications`);
+        return { success: true, skipped: true };
+      }
+    }
 
     // Send email to all players (with safety filtering applied)
     return await sendEmail({

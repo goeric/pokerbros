@@ -6,7 +6,15 @@
       "Bash(git push)",
       "Bash(supabase db push:*)",
       "Bash(supabase db execute:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npm run dev:*)",
+      "Bash(supabase start:*)",
+      "Bash(supabase migration:*)",
+      "Bash(psql:*)",
+      "Bash(docker ps:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
