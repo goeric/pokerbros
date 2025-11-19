@@ -10,7 +10,8 @@ PokerBros is a web application for managing monthly home poker games with real-t
 
 **Tech Stack:**
 - Frontend: React/Next.js 16 with TypeScript and App Router
-- Styling: Tailwind CSS (dark green poker/casino theme)
+- Styling: Tailwind CSS (casino glassmorphism theme with gold accents)
+- Icons: Phosphor Icons (@phosphor-icons/react)
 - Database: Supabase (local development with Docker)
 - Authentication: Supabase Auth with Google OAuth (server-first architecture)
 - Deployment: Vercel
@@ -310,25 +311,72 @@ The application has six core entities with specific relationships:
    - Public read access, admin-only write via RLS
    - Used for: email safety, app versioning, and future toggles
 
+## Design System
+
+### Casino Glassmorphism Theme
+
+The app uses a premium casino glassmorphism design with consistent styling across all pages:
+
+**Core Styling Classes:**
+- `glass-panel` - Base glassmorphism effect (backdrop-blur, semi-transparent background)
+- `font-display` - Space Grotesk font for headings and emphasis
+- `animate-gold-pulse` - Subtle gold glow animation for important elements
+
+**Color Palette:**
+- `poker-gold` - Gold accent (#D4AF37) for primary actions and highlights
+- `poker-goldlight` - Lighter gold (#F3E5AB) for gradients
+- `poker-red` - Casino red (#D92828) for live indicators
+- `poker-feltLight` - Light poker felt green for subtle accents
+- Glass backgrounds use `bg-black/40` or `bg-white/5` with backdrop-blur
+
+**Form Input Pattern:**
+```tsx
+<input className="w-full px-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all" />
+```
+
+**Button Patterns:**
+- Primary (Gold): `bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold`
+- Secondary: `bg-white/5 hover:bg-white/10 border border-white/10`
+- Danger: `bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400`
+
+### Icon System
+
+**Always use Phosphor Icons** for all UI elements:
+- Import from `@phosphor-icons/react`
+- Use `weight="bold"` for primary actions
+- Use `weight="fill"` for filled states
+- Gold color for primary icons: `className="text-poker-gold"`
+
+Common icons:
+- `Trophy`, `Crown` - Winners, achievements
+- `CurrencyDollar` - Money, buy-ins
+- `Users`, `MapPin`, `Calendar`, `Clock` - General UI
+- `GearSix` - Settings/Admin
+- `Plus`, `Minus`, `X` - Actions
+
 ## Reusable Components
 
 **Always prefer existing components over creating new ones.** The following reusable components exist:
 
 ### Navigation & Layout
-- `BackButton` - Configurable back button with href and label props
-- `Card` - Consistent card styling with hover states
+- `TopNavigation` - Main app navigation with logo, nav items, user menu
+- `BackButton` - Glass panel back button with gold Phosphor icon and animation
+- `Modal` - Casino-themed modal with glass background and gold borders
+- `PokerBrosLogo` - Detailed casino chip logo (variants: 'primary', 'simplified')
+- `Card` - Legacy component (prefer glass-panel divs for new code)
 - `Badge` - Status badges with variants (info, warning, success, danger, gold)
-- `Button` - Primary, secondary, ghost, and danger variants
+- `Button` - Legacy component (prefer custom buttons with Tailwind for new code)
 
 ### Forms
-- `Input` - Form input with label, error state, and consistent styling
-- `GameFormModal` - Shared modal for creating and editing games (mode: 'create' | 'edit')
+- `GameFormModal` - Casino-themed game creation/edit modal with Phosphor icons
+- `Input` - Legacy component (prefer custom inputs with casino styling for new code)
 
 ### Display Components
+- `FeaturedGameCard` - Large game card for homepage with avatar display and +X indicator
+- `GameCard` - Compact game card for listings
 - `ProfitDisplay` - Shows profit/loss with proper color coding and sizing
 - `PodiumCard` - Podium display for 1st/2nd/3rd place with proper styling for each rank
 - `SeatIndicator` - Visual seat availability indicator (pill-shaped)
-- `ChipIcon` - Poker chip SVG icon
 
 ## Utility Functions
 
