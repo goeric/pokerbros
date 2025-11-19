@@ -393,7 +393,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedBiggestWin: number | null = null
+      const biggestWins: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -408,7 +408,14 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
               if (data.biggestWin !== undefined) {
-                capturedBiggestWin = data.biggestWin
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      biggestWins[value] = data.biggestWin
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
               }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -432,7 +439,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedBiggestWin).toBe(50)
+      expect(biggestWins[PLAYER_1_ID]).toBe(50)
     })
 
     test('does not update biggestWin when new win is lower', async () => {
@@ -445,7 +452,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedBiggestWin: number | null = null
+      const biggestWins: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -460,7 +467,14 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
               if (data.biggestWin !== undefined) {
-                capturedBiggestWin = data.biggestWin
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      biggestWins[value] = data.biggestWin
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
               }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -484,7 +498,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedBiggestWin).toBe(100)
+      expect(biggestWins[PLAYER_1_ID]).toBe(100)
     })
 
     test('updates player biggestLoss stat when new loss exceeds previous', async () => {
@@ -497,7 +511,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedBiggestLoss: number | null = null
+      const biggestLosses: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -512,7 +526,14 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
               if (data.biggestLoss !== undefined) {
-                capturedBiggestLoss = data.biggestLoss
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      biggestLosses[value] = data.biggestLoss
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
               }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -536,7 +557,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedBiggestLoss).toBe(-50)
+      expect(biggestLosses[PLAYER_1_ID]).toBe(-50)
     })
 
     test('increments gamesPlayed counter', async () => {
@@ -594,8 +615,8 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         { id: PLAYER_2_ID, totalIn: 100, totalOut: 90, gamesPlayed: 1, biggestWin: 20, biggestLoss: -10 },
       ]
 
-      let capturedTotalIn: number | null = null
-      let capturedTotalOut: number | null = null
+      const totalIns: Record<string, number> = {}
+      const totalOuts: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -610,8 +631,15 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
               if (data.totalIn !== undefined && data.totalOut !== undefined) {
-                capturedTotalIn = data.totalIn
-                capturedTotalOut = data.totalOut
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      totalIns[value] = data.totalIn
+                      totalOuts[value] = data.totalOut
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
               }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
@@ -635,8 +663,8 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedTotalIn).toBe(350) // 200 + 150 = 350
-      expect(capturedTotalOut).toBe(380) // 180 + 200 = 380
+      expect(totalIns[PLAYER_1_ID]).toBe(350) // 200 + 150 = 350
+      expect(totalOuts[PLAYER_1_ID]).toBe(380) // 180 + 200 = 380
     })
   })
 
