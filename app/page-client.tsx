@@ -94,12 +94,39 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
   return (
     <>
       {/* Content Container - Full Width Dashboard */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 pb-8 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          {/* Season Status */}
+          {liveGames.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-poker-red rounded-full animate-pulse"></div>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                Season 1 - Live
+              </p>
+            </div>
+          )}
+
+          {/* Page Title */}
+          <h1 className="text-4xl font-display font-bold text-white mb-4">The Floor</h1>
+
+          {/* New Table Button - Mobile Only */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="md:hidden w-full py-3 px-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 border border-yellow-200 shadow-lg flex items-center justify-center gap-2"
+            >
+              <Plus weight="bold" className="text-xl" />
+              <span className="tracking-wide">New Table</span>
+            </button>
+          )}
+        </div>
+
         {/* Quick Stats - Top Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {/* Hands Dealt / Total Games */}
-          <div className="glass-panel p-6 rounded-2xl">
-            <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Hands Dealt</p>
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Hands Dealt</p>
             <div className="flex items-baseline gap-2">
               <p className="text-4xl font-display font-bold text-white">{quickStats.totalGamesHosted}</p>
               <p className="text-gray-400 font-medium">Game{quickStats.totalGamesHosted !== 1 ? 's' : ''}</p>
@@ -107,30 +134,33 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
           </div>
 
           {/* Season Pot */}
-          <div className="glass-panel p-6 rounded-2xl">
-            <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Season Pot</p>
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Season Pot</p>
             <div className="flex items-baseline gap-2">
               <p className="text-4xl font-display font-bold text-poker-gold">
                 {formatCurrency(quickStats.totalMoneyPlayed)}
               </p>
             </div>
-            <p className="text-gray-500 text-xs mt-2">House rake: $0</p>
           </div>
 
           {/* Chip Leader */}
-          <div className="glass-panel p-6 rounded-2xl">
-            <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Chip Leader</p>
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Chip Leader</p>
             <div className="flex items-center gap-3">
               {quickStats.chipLeader ? (
                 <>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-poker-gold to-yellow-700 flex items-center justify-center border-2 border-yellow-200">
-                    <Trophy weight="fill" className="text-black" size={20} />
-                  </div>
+                  <img
+                    src={`/avatars/${quickStats.chipLeader.player.avatar}`}
+                    alt={formatPlayerName(quickStats.chipLeader.player)}
+                    className="w-10 h-10 rounded-full border-2 border-poker-gold shadow-lg"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="font-display font-bold text-white truncate">
-                      {quickStats.chipLeader.player.first_name} {quickStats.chipLeader.player.last_name}
+                      {formatPlayerName(quickStats.chipLeader.player)}
                     </p>
-                    <p className="text-xs text-gray-400">Waiting for results</p>
+                    <p className="text-xs text-poker-gold">
+                      +{formatCurrency(quickStats.chipLeader.profit)}
+                    </p>
                   </div>
                 </>
               ) : (
@@ -153,7 +183,10 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                 <FeaturedGameCard
                   game={liveGames[0]}
                   confirmedCount={getRsvpCounts(liveGames[0].id).confirmed}
-                  onRsvp={() => window.location.href = `/game/${liveGames[0].id}/live`}
+                  confirmedPlayers={rsvps
+                    .filter(r => r.gameId === liveGames[0].id && r.status === 'confirmed')
+                    .map(r => players.find(p => p.id === r.playerId))
+                    .filter((p): p is Player => p !== undefined)}
                 />
               </>
             ) : upcomingGamesList.length > 0 ? (
@@ -165,7 +198,10 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                 <FeaturedGameCard
                   game={upcomingGamesList[0]}
                   confirmedCount={getRsvpCounts(upcomingGamesList[0].id).confirmed}
-                  onRsvp={() => window.location.href = `/game/${upcomingGamesList[0].id}`}
+                  confirmedPlayers={rsvps
+                    .filter(r => r.gameId === upcomingGamesList[0].id && r.status === 'confirmed')
+                    .map(r => players.find(p => p.id === r.playerId))
+                    .filter((p): p is Player => p !== undefined)}
                 />
               </>
             ) : (
@@ -246,11 +282,11 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
       </div>
       {/* End Content Container */}
 
-      {/* Floating Action Button - Admin Only */}
+      {/* Floating Action Button - Desktop Only (Mobile has button in header) */}
       {isAdmin && (
         <button
           onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-8 right-8 flex items-center gap-2 px-6 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] transition-all duration-200 z-30 hover:scale-105 border border-yellow-200"
+          className="hidden md:flex fixed bottom-8 right-8 items-center gap-2 px-6 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] transition-all duration-200 z-[9999] hover:scale-105 border border-yellow-200"
           aria-label="Host New Game"
         >
           <Plus weight="bold" className="text-xl" />

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-provider';
-import NavigationV2 from '@/components/NavigationV2';
+import TopNavigation from '@/components/TopNavigation';
 import UnauthorizedUser from '@/components/UnauthorizedUser';
 import { getServerAuth } from '@/lib/auth-server';
 
@@ -63,6 +65,50 @@ export default async function RootLayout({
   // Fetch auth state on the server - no client-side delay!
   const auth = await getServerAuth();
 
+  // Fetch player avatar if user is logged in
+  let playerAvatar = 'avatar1.svg';
+  let playerName = '';
+  if (auth.user) {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            try {
+              cookieStore.set({ name, value, ...options });
+            } catch (error) {
+              // Ignore
+            }
+          },
+          remove(name: string, options: any) {
+            try {
+              cookieStore.delete(name);
+            } catch (error) {
+              // Ignore
+            }
+          },
+        },
+      }
+    );
+
+    const { data: playerData } = await supabase
+      .from('players')
+      .select('avatar, first_name, last_name')
+      .eq('email', auth.user.email)
+      .single();
+
+    if (playerData) {
+      playerAvatar = playerData.avatar || 'avatar1.svg';
+      playerName = `${playerData.first_name} ${playerData.last_name.charAt(0)}.`;
+    }
+  }
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -99,27 +145,29 @@ export default async function RootLayout({
             {auth.isUnauthorized ? (
               <UnauthorizedUser />
             ) : (
-              <div className="flex">
-                {/* Sidebar Navigation */}
-                <NavigationV2
+              <div className="flex flex-col min-h-screen">
+                {/* Top Navigation */}
+                <TopNavigation
                   isAdmin={auth.isAdmin}
                   user={auth.user}
                   role={auth.role}
+                  playerAvatar={playerAvatar}
+                  playerName={playerName}
                 />
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col min-h-screen">
-                  <main className="flex-1 relative z-10">
-                    {children}
-                  </main>
-                  <footer className="relative z-10 bg-poker-dark/50 border-t border-white/5 mt-20 transition-colors duration-300">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                      <p className="text-center text-gray-400 text-sm">
-                        PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
-                      </p>
-                    </div>
-                  </footer>
-                </div>
+                <main className="flex-1 relative z-10">
+                  {children}
+                </main>
+
+                {/* Footer */}
+                <footer className="relative z-10 border-t border-white/5 mt-20 pointer-events-none">
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <p className="text-center text-gray-400 text-sm pointer-events-auto">
+                      PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
+                    </p>
+                  </div>
+                </footer>
               </div>
             )}
           </AuthProvider>

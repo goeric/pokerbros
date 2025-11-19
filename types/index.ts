@@ -1,9 +1,22 @@
+export interface NotificationPreferences {
+  game_created: boolean;
+  game_updated: boolean;
+  game_cancelled: boolean;
+  rsvp_confirmed: boolean;
+  rsvp_cancelled: boolean;
+  waitlist_promoted: boolean;
+  game_reminder_24h: boolean;
+  game_reminder_3h: boolean;
+}
+
 export interface Player {
   id: string;
   first_name: string;
   last_name: string;
   nickname?: string;
   email: string;
+  avatar: string;
+  notification_preferences: NotificationPreferences;
   totalIn: number;
   totalOut: number;
   gamesPlayed: number;

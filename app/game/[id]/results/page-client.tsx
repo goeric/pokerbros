@@ -3,12 +3,10 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency, formatDate, formatTime } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime, formatPlayerName } from '@/lib/utils';
 import { triggerConfetti } from '@/lib/confetti';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import ChipIcon from '@/components/ChipIcon';
 import BackButton from '@/components/BackButton';
+import { Trophy, Crown, ShareNetwork, House, Users, Fire, TrendUp, ChartBar } from '@phosphor-icons/react';
 
 interface ResultsClientProps {
   game: Game;
@@ -37,7 +35,7 @@ export default function ResultsClient({
       const player = players.find(p => p.id === gp.playerId);
       if (player) {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '  ';
-        const playerName = `${player.first_name} ${player.nickname ? `"${player.nickname}"` : ''} ${player.last_name}`.trim().replace(/\s+/g, ' ');
+        const playerName = formatPlayerName(player);
         text += `${medal} ${playerName}: ${gp.profit >= 0 ? '+' : ''}${formatCurrency(gp.profit)}\n`;
       }
     });
@@ -64,8 +62,11 @@ export default function ResultsClient({
 
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Game Results</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <Trophy weight="fill" className="text-poker-gold text-5xl animate-gold-pulse" />
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-white drop-shadow-lg">Game Results</h1>
+        </div>
+        <p className="text-gray-400 text-lg">
           {formatDate(game.date)} at {formatTime(game.time)}
         </p>
       </div>
@@ -74,46 +75,66 @@ export default function ResultsClient({
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {/* Biggest Winner */}
         {winnerPlayer && winner && winner.profit > 0 && (
-          <Card className="p-6 border-2 border-yellow-500 dark:border-yellow-600 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-gray-800">
+          <div className="glass-panel rounded-2xl p-8 border-2 border-poker-gold/50 bg-gradient-to-b from-poker-gold/20 to-transparent shadow-[0_0_40px_rgba(212,175,55,0.3)]">
             <div className="text-center">
-              <p className="text-6xl mb-3">👑</p>
-              <p className="text-yellow-600 dark:text-yellow-500 font-semibold mb-2">Biggest Winner</p>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {winnerPlayer.first_name} {winnerPlayer.nickname ? `"${winnerPlayer.nickname}"` : ''} {winnerPlayer.last_name}
-              </h3>
-              <p className="text-4xl font-bold text-poker-profit">
+              <Crown weight="fill" className="text-poker-gold text-7xl mx-auto mb-4 animate-gold-pulse" />
+              <p className="text-poker-gold font-bold mb-3 uppercase tracking-wider text-sm">Biggest Winner</p>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <img
+                  src={`/avatars/${winnerPlayer.avatar}`}
+                  alt={formatPlayerName(winnerPlayer)}
+                  className="w-16 h-16 rounded-full border-3 border-poker-gold shadow-xl"
+                />
+                <div className="text-left">
+                  <h3 className="font-display text-2xl font-bold text-white">
+                    {formatPlayerName(winnerPlayer)}
+                  </h3>
+                  <p className="text-gray-400 text-sm">The Champion</p>
+                </div>
+              </div>
+              <p className="font-display text-5xl font-bold text-green-400 mb-2">
                 +{formatCurrency(winner.profit)}
               </p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+              <p className="text-gray-400 text-sm">
                 {((winner.profit / winner.buyIns.reduce((sum, b) => sum + b, 0)) * 100).toFixed(0)}% ROI
               </p>
             </div>
-          </Card>
+          </div>
         )}
 
         {/* Biggest Loser */}
         {loserPlayer && loser && loser.profit < 0 && (
-          <Card className="p-6 border-2 border-red-500 dark:border-red-600 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-gray-800">
+          <div className="glass-panel rounded-2xl p-8 border-2 border-red-500/50 bg-gradient-to-b from-red-950/30 to-transparent">
             <div className="text-center">
-              <p className="text-6xl mb-3">😢</p>
-              <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Biggest Loser</p>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                {loserPlayer.first_name} {loserPlayer.nickname ? `"${loserPlayer.nickname}"` : ''} {loserPlayer.last_name}
-              </h3>
-              <p className="text-4xl font-bold text-poker-loss">
+              <div className="text-7xl mx-auto mb-4">💸</div>
+              <p className="text-red-400 font-bold mb-3 uppercase tracking-wider text-sm">Biggest Loser</p>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <img
+                  src={`/avatars/${loserPlayer.avatar}`}
+                  alt={formatPlayerName(loserPlayer)}
+                  className="w-16 h-16 rounded-full border-3 border-red-500 shadow-xl"
+                />
+                <div className="text-left">
+                  <h3 className="font-display text-2xl font-bold text-white">
+                    {formatPlayerName(loserPlayer)}
+                  </h3>
+                  <p className="text-gray-400 text-sm">Better luck next time!</p>
+                </div>
+              </div>
+              <p className="font-display text-5xl font-bold text-red-400 mb-2">
                 {formatCurrency(loser.profit)}
               </p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                Better luck next time!
-              </p>
             </div>
-          </Card>
+          </div>
         )}
       </div>
 
       {/* Results Table */}
-      <Card className="p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Final Standings</h2>
+      <div className="glass-panel rounded-2xl p-6 mb-8 border border-white/10">
+        <h2 className="font-display text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <ChartBar weight="fill" className="text-poker-gold" />
+          Final Standings
+        </h2>
         <div className="space-y-3">
           {gamePlayers.map((gamePlayer, index) => {
             const player = players.find(p => p.id === gamePlayer.playerId);
@@ -121,91 +142,131 @@ export default function ResultsClient({
 
             const totalBuyIn = gamePlayer.buyIns.reduce((sum, amount) => sum + amount, 0);
             const roi = (gamePlayer.profit / totalBuyIn) * 100;
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+            const medals = ['🥇', '🥈', '🥉'];
+            const medal = medals[index];
 
             return (
               <div
                 key={gamePlayer.id}
-                className="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg"
+                className={`flex items-center gap-4 p-5 rounded-xl transition-all ${
+                  index < 3
+                    ? 'bg-gradient-to-r from-poker-gold/10 to-transparent border border-poker-gold/20'
+                    : 'bg-white/5 border border-white/5'
+                }`}
               >
-                <div className="w-8 text-center">
+                <div className="w-12 text-center flex-shrink-0">
                   {medal ? (
-                    <span className="text-2xl">{medal}</span>
+                    <span className="text-3xl">{medal}</span>
                   ) : (
-                    <span className="text-gray-500 dark:text-gray-400 font-bold">{index + 1}</span>
+                    <span className="text-gray-500 font-bold text-xl">{index + 1}</span>
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-900 dark:text-white font-bold">
-                    {player.first_name} {player.nickname ? `"${player.nickname}"` : ''} {player.last_name}
+                <img
+                  src={`/avatars/${player.avatar}`}
+                  alt={formatPlayerName(player)}
+                  className={`w-14 h-14 rounded-full border-2 shadow-lg flex-shrink-0 ${
+                    index === 0 ? 'border-poker-gold' : 'border-white/20'
+                  }`}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-display font-bold text-white text-lg truncate">
+                    {formatPlayerName(player)}
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  <p className="text-gray-400 text-sm">
                     In: {formatCurrency(totalBuyIn)} • Out: {formatCurrency(gamePlayer.cashOut)}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className={`text-xl font-bold ${gamePlayer.profit >= 0 ? 'text-poker-profit' : 'text-poker-loss'}`}>
+                <div className="text-right flex-shrink-0">
+                  <p className={`font-display text-2xl font-bold ${gamePlayer.profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {gamePlayer.profit >= 0 ? '+' : ''}{formatCurrency(gamePlayer.profit)}
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    {roi >= 0 ? '+' : ''}{roi.toFixed(0)}%
+                  <p className="text-gray-400 text-sm font-semibold">
+                    {roi >= 0 ? '+' : ''}{roi.toFixed(0)}% ROI
                   </p>
                 </div>
               </div>
             );
           })}
         </div>
-      </Card>
+      </div>
 
       {/* Game Statistics */}
-      <Card className="p-6 mb-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Game Statistics</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Pot</p>
-            <p className="text-2xl font-bold text-poker-gold-light dark:text-poker-gold-dark flex items-center gap-2">
-              <ChipIcon className="w-5 h-5" />
+      <div className="glass-panel rounded-2xl p-6 mb-8 border border-white/10">
+        <h2 className="font-display text-2xl font-bold text-white mb-6 flex items-center gap-2">
+          <TrendUp weight="fill" className="text-poker-gold" />
+          Game Statistics
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Trophy weight="fill" className="text-poker-gold" size={20} />
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Total Pot</p>
+            </div>
+            <p className="font-display text-3xl font-bold text-poker-gold">
               {formatCurrency(totalPot)}
             </p>
           </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Players</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{gamePlayers.length}</p>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Users weight="fill" className="text-blue-400" size={20} />
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Players</p>
+            </div>
+            <p className="font-display text-3xl font-bold text-white">{gamePlayers.length}</p>
           </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Rebuys</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalRebuys}</p>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Fire weight="fill" className="text-orange-400" size={20} />
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Rebuys</p>
+            </div>
+            <p className="font-display text-3xl font-bold text-white">{totalRebuys}</p>
           </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Avg Buy-in</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(avgBuyIn)}</p>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <ChartBar weight="fill" className="text-green-400" size={20} />
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider">Avg Buy-in</p>
+            </div>
+            <p className="font-display text-3xl font-bold text-white">{formatCurrency(avgBuyIn)}</p>
           </div>
         </div>
-      </Card>
+      </div>
 
       {/* Actions */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Button onClick={handleShareResults} variant="secondary" fullWidth>
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
+        <button
+          onClick={handleShareResults}
+          className="flex items-center justify-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-xl transition-all"
+        >
+          <ShareNetwork weight="bold" size={20} />
           Share Results
-        </Button>
-        <Button onClick={() => router.push('/')} variant="primary" fullWidth>
+        </button>
+        <button
+          onClick={() => router.push('/')}
+          className="flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all border border-yellow-200 shadow-lg"
+        >
+          <House weight="bold" size={20} />
           Back to Dashboard
-        </Button>
+        </button>
       </div>
 
       {/* Admin Actions */}
       {isAdmin && (
-        <Card className="p-6 mt-6">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Admin Actions</h3>
+        <div className="glass-panel rounded-2xl p-6 border border-white/10">
+          <h3 className="font-display text-xl font-bold text-white mb-4">Admin Actions</h3>
           <div className="grid md:grid-cols-2 gap-4">
-            <Button onClick={() => router.push(`/game/${game.id}/live`)} variant="secondary" fullWidth>
-              Edit Player Results
-            </Button>
-            <Button onClick={() => router.push(`/game/${game.id}`)} variant="ghost" fullWidth>
+            <button
+              onClick={() => router.push(`/game/${game.id}/cashout`)}
+              className="px-4 py-3 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-400 font-bold rounded-lg transition-all"
+            >
+              Edit Cash-Out Results
+            </button>
+            <button
+              onClick={() => router.push(`/game/${game.id}`)}
+              className="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition-all"
+            >
               Back to Game Details
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
       )}
     </>
   );

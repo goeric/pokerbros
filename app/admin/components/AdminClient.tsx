@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Player } from '@/types';
 import { UserRole } from '@/lib/auth-server';
-import Button from '@/components/Button';
 import PlayerModal from './PlayerModal';
 import { deletePlayer } from '../actions';
+import { Users, MapPin, Gear, Plus, PencilSimple, Trash, TrendUp, TrendDown } from '@phosphor-icons/react';
 
 interface AdminClientProps {
   initialPlayers: Player[];
@@ -55,101 +55,136 @@ export default function AdminClient({ initialPlayers, canEdit, userRole }: Admin
 
   return (
     <>
-      {/* Admin Navigation */}
+      {/* Admin Navigation Tabs */}
       {canEdit && (
-        <div className="mb-6 flex gap-3">
+        <div className="flex gap-3 mb-8">
           <Link
             href="/admin"
-            className="px-4 py-2 bg-poker-green text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-3 glass-panel rounded-xl border-2 border-poker-gold/50 bg-gradient-to-b from-poker-gold/20 to-transparent text-white font-bold transition-all"
           >
+            <Users weight="fill" className="text-poker-gold" size={20} />
             Players
           </Link>
           <Link
             href="/admin/locations"
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-3 glass-panel rounded-xl border border-white/10 hover:border-poker-gold/30 text-gray-300 hover:text-white font-medium transition-all"
           >
+            <MapPin weight="bold" size={20} />
             Locations
           </Link>
           <Link
             href="/admin/settings"
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-3 glass-panel rounded-xl border border-white/10 hover:border-poker-gold/30 text-gray-300 hover:text-white font-medium transition-all"
           >
+            <Gear weight="bold" size={20} />
             Settings
           </Link>
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Player Management</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <h1 className="font-display text-4xl font-bold text-white mb-2">Player Management</h1>
+          <p className="text-gray-400">
             {canEdit ? 'Add and manage poker players' : 'View poker players (read-only)'}
           </p>
         </div>
         {canEdit && (
-          <Button onClick={() => handleOpenModal()}>
-            + Add Player
-          </Button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all border border-yellow-200 shadow-lg hover:scale-105"
+          >
+            <Plus weight="bold" size={20} />
+            Add Player
+          </button>
         )}
       </div>
 
+      {/* Players List */}
       {initialPlayers.length === 0 ? (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-12 text-center">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">No players yet</p>
-          {canEdit && <Button onClick={() => handleOpenModal()}>Add your first player</Button>}
+        <div className="glass-panel rounded-2xl p-16 text-center border border-white/10">
+          <Users weight="fill" className="text-gray-600 text-6xl mx-auto mb-4" />
+          <p className="text-gray-400 text-lg mb-6">No players yet</p>
+          {canEdit && (
+            <button
+              onClick={() => handleOpenModal()}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all border border-yellow-200 shadow-lg"
+            >
+              <Plus weight="bold" size={20} />
+              Add your first player
+            </button>
+          )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        <div className="glass-panel rounded-2xl overflow-hidden border border-white/10">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                  <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Name</th>
-                  <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Nickname</th>
-                  <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Email</th>
-                  <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Games Played</th>
-                  <th className="text-left py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Total P/L</th>
-                  <th className="text-right py-3 px-4 text-gray-700 dark:text-gray-400 font-medium">Actions</th>
+                <tr className="border-b border-white/10 bg-white/5">
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Avatar</th>
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Name</th>
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Nickname</th>
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Email</th>
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Games</th>
+                  <th className="text-left py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Total P/L</th>
+                  <th className="text-right py-4 px-6 text-gray-400 font-semibold text-sm uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {initialPlayers.map((player) => {
                   const profit = player.totalOut - player.totalIn;
                   return (
-                    <tr key={player.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                      <td className="py-3 px-4 text-gray-900 dark:text-white font-medium">
+                    <tr key={player.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-6">
+                        <img
+                          src={`/avatars/${player.avatar}`}
+                          alt={`${player.first_name} ${player.last_name}`}
+                          className="w-10 h-10 rounded-full border-2 border-poker-gold/50 shadow-lg"
+                        />
+                      </td>
+                      <td className="py-4 px-6 font-display font-bold text-white">
                         {player.first_name} {player.last_name}
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
-                        {player.nickname || '-'}
+                      <td className="py-4 px-6 text-gray-300">
+                        {player.nickname ? `"${player.nickname}"` : '-'}
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{player.email}</td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{player.gamesPlayed}</td>
-                      <td className="py-3 px-4">
-                        <span className={profit >= 0 ? 'text-green-600 dark:text-green-500 font-semibold' : 'text-red-600 dark:text-red-500 font-semibold'}>
-                          ${Math.abs(profit).toFixed(0)}
-                        </span>
+                      <td className="py-4 px-6 text-gray-400">{player.email}</td>
+                      <td className="py-4 px-6 text-gray-300 font-semibold">{player.gamesPlayed}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1">
+                          {profit >= 0 ? (
+                            <TrendUp weight="bold" className="text-green-400" size={16} />
+                          ) : (
+                            <TrendDown weight="bold" className="text-red-400" size={16} />
+                          )}
+                          <span className={`font-display font-bold ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {profit >= 0 ? '+' : ''}${Math.abs(profit).toFixed(0)}
+                          </span>
+                        </div>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-4 px-6 text-right">
                         {canEdit ? (
-                          <>
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => handleOpenModal(player)}
                               disabled={isPending}
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mr-4 disabled:opacity-50 font-medium"
+                              className="p-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-400 rounded-lg transition-all disabled:opacity-50"
+                              title="Edit player"
                             >
-                              Edit
+                              <PencilSimple weight="bold" size={16} />
                             </button>
                             <button
                               onClick={() => handleDelete(player.id)}
                               disabled={isPending}
-                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 disabled:opacity-50 font-medium"
+                              className="p-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 rounded-lg transition-all disabled:opacity-50"
+                              title="Delete player"
                             >
-                              Delete
+                              <Trash weight="bold" size={16} />
                             </button>
-                          </>
+                          </div>
                         ) : (
-                          <span className="text-gray-400 dark:text-gray-600">-</span>
+                          <span className="text-gray-600">-</span>
                         )}
                       </td>
                     </tr>
