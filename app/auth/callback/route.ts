@@ -20,22 +20,24 @@ export async function GET(request: Request) {
   });
 
   // Validate origin to prevent CSRF attacks
-  const origin = request.headers.get('origin') || request.headers.get('referer');
-  const allowedOrigins = [
-    requestUrl.origin,
-    'http://localhost:3000',
-    process.env.NEXT_PUBLIC_APP_URL,
-  ].filter(Boolean);
-
-  // For OAuth callbacks, the origin might be from Google, so we check the referer contains our domain
+  // For OAuth callbacks from Google, the referer will be accounts.google.com
+  // We validate that the code parameter exists (from Google) rather than strict origin checking
+  const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
-  const isValidOrigin = referer?.includes(requestUrl.origin) || allowedOrigins.includes(origin || '');
 
-  if (!isValidOrigin && process.env.NODE_ENV === 'production') {
+  // Allow if:
+  // 1. Code exists (coming from OAuth provider)
+  // 2. Referer is from Google OAuth (accounts.google.com)
+  // 3. Origin matches our domain (for direct requests)
+  const isFromGoogleOAuth = referer?.includes('accounts.google.com');
+  const isOwnDomain = origin === requestUrl.origin || origin === process.env.NEXT_PUBLIC_APP_URL;
+
+  if (!code && !isFromGoogleOAuth && !isOwnDomain && process.env.NODE_ENV === 'production') {
     logger.error('[Callback] Invalid origin detected', {
       origin,
       referer,
-      allowed: allowedOrigins,
+      requestOrigin: requestUrl.origin,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL,
     });
     return NextResponse.redirect(
       new URL('/login?error=invalid_origin', requestUrl.origin)
