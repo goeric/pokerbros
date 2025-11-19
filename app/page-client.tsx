@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
 import { Spade, CurrencyDollar, Trophy, CalendarDots, Plus } from '@phosphor-icons/react';
+import FeaturedGameCard from '@/components/FeaturedGameCard';
 
 interface HomeClientProps {
   games: Game[];
@@ -149,73 +150,11 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                   <Spade weight="fill" className="text-poker-gold" size={24} />
                   <h2 className="text-3xl font-display font-bold text-white">Next Deal</h2>
                 </div>
-                {/* Large Featured Live Game Card */}
-                <div className="glass-panel p-8 rounded-2xl relative overflow-hidden">
-                  {/* Red gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-poker-red/10 to-transparent pointer-events-none"></div>
-
-                  <div className="relative z-10">
-                    {/* Live Badge */}
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-poker-red/10 border border-poker-red/20 rounded-full mb-6">
-                      <div className="w-2.5 h-2.5 bg-poker-red rounded-full animate-pulse shadow-[0_0_10px_rgba(217,40,40,0.6)]"></div>
-                      <span className="text-poker-red text-sm font-display font-bold uppercase tracking-wider">Confirmed Game</span>
-                    </div>
-
-                    <h3 className="text-5xl font-display font-bold text-white mb-8">
-                      {formatDate(liveGames[0].date).split(',')[0]}<br />Night
-                    </h3>
-
-                    <div className="grid grid-cols-3 gap-6">
-                      <div>
-                        <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Date</p>
-                        <p className="text-2xl font-display font-bold text-white">
-                          {formatDate(liveGames[0].date).split(',')[1].trim()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Shuffle Up</p>
-                        <p className="text-2xl font-display font-bold text-poker-gold">
-                          {formatTime(liveGames[0].time)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Buy-In</p>
-                        <p className="text-2xl font-display font-bold text-poker-gold">
-                          {formatCurrency(liveGames[0].buyIn)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* RSVP Info */}
-                    <div className="mt-8 pt-6 border-t border-white/10">
-                      <div className="flex items-center gap-2 mb-4">
-                        {[...Array(8)].map((_, i) => {
-                          const { confirmed } = getRsvpCounts(liveGames[0].id);
-                          return (
-                            <div
-                              key={i}
-                              className={`flex-1 h-2 rounded-full ${
-                                i < confirmed ? 'bg-poker-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]' : 'bg-gray-700'
-                              }`}
-                            />
-                          );
-                        })}
-                      </div>
-                      <p className="text-white font-display font-bold">
-                        {getRsvpCounts(liveGames[0].id).confirmed}/8 Seated
-                      </p>
-                    </div>
-
-                    {/* Enter Button */}
-                    <button
-                      onClick={() => window.location.href = `/game/${liveGames[0].id}/live`}
-                      className="w-full mt-6 py-4 px-6 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 hover:scale-[1.02] border border-yellow-200 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] flex items-center justify-center gap-2 text-lg"
-                    >
-                      <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
-                      <span className="tracking-wide">DEAL ME IN</span>
-                    </button>
-                  </div>
-                </div>
+                <FeaturedGameCard
+                  game={liveGames[0]}
+                  confirmedCount={getRsvpCounts(liveGames[0].id).confirmed}
+                  onRsvp={() => window.location.href = `/game/${liveGames[0].id}/live`}
+                />
               </>
             ) : upcomingGamesList.length > 0 ? (
               <>
@@ -223,8 +162,11 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                   <Spade weight="fill" className="text-poker-gold" size={24} />
                   <h2 className="text-3xl font-display font-bold text-white">Next Deal</h2>
                 </div>
-                {/* Large Featured Upcoming Game Card */}
-                <GameCard game={upcomingGamesList[0]} confirmedCount={getRsvpCounts(upcomingGamesList[0].id).confirmed} waitlistCount={getRsvpCounts(upcomingGamesList[0].id).waitlist} />
+                <FeaturedGameCard
+                  game={upcomingGamesList[0]}
+                  confirmedCount={getRsvpCounts(upcomingGamesList[0].id).confirmed}
+                  onRsvp={() => window.location.href = `/game/${upcomingGamesList[0].id}`}
+                />
               </>
             ) : (
               <div className="glass-panel p-12 text-center rounded-2xl">
