@@ -142,13 +142,15 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
   describe('Profit calculations', () => {
     test('calculates profit correctly for winner (single buy-in)', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Loser (to balance)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedProfit: number | null = null
+      const profits: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -156,7 +158,17 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
             update: jest.fn((data: any) => {
-              capturedProfit = data.profit
+              let currentGamePlayerId: string | null = null
+              if (data.profit !== undefined) {
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      profits[value] = data.profit
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -179,22 +191,27 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 150 } // $150 cash-out - $100 buy-in = +$50 profit
+      const cashOuts = {
+        [PLAYER_1_ID]: 150, // $150 out - $100 in = +$50 profit
+        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
+      } // Total: $150 in, $150 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedProfit).toBe(50)
+      expect(profits[GAME_PLAYER_1_ID]).toBe(50)
     })
 
     test('calculates profit correctly for winner (multiple rebuys)', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 100, 50] }, // $250 total in
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 100, 50] }, // $250 total in - Winner
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [100, 50] },      // $150 total in - Loser
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedProfit: number | null = null
+      const profits: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -202,7 +219,16 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
             update: jest.fn((data: any) => {
-              capturedProfit = data.profit
+              if (data.profit !== undefined) {
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      profits[value] = data.profit
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -225,22 +251,27 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 400 } // $400 cash-out - $250 buy-in = +$150 profit
+      const cashOuts = {
+        [PLAYER_1_ID]: 400, // $400 out - $250 in = +$150 profit
+        [PLAYER_2_ID]: 0,   // $0 out - $150 in = -$150 loss
+      } // Total: $400 in, $400 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedProfit).toBe(150)
+      expect(profits[GAME_PLAYER_1_ID]).toBe(150)
     })
 
     test('calculates profit correctly for loser', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Loser
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (to balance)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedProfit: number | null = null
+      const profits: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -248,7 +279,16 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
             update: jest.fn((data: any) => {
-              capturedProfit = data.profit
+              if (data.profit !== undefined) {
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      profits[value] = data.profit
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -271,22 +311,27 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 50 } // $50 cash-out - $100 buy-in = -$50 loss
+      const cashOuts = {
+        [PLAYER_1_ID]: 50,  // $50 out - $100 in = -$50 loss
+        [PLAYER_2_ID]: 100, // $100 out - $50 in = +$50 profit
+      } // Total: $150 in, $150 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedProfit).toBe(-50)
+      expect(profits[GAME_PLAYER_1_ID]).toBe(-50)
     })
 
     test('handles zero cash-out (busted player)', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Busted player
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (gets all chips)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
-      let capturedProfit: number | null = null
+      const profits: Record<string, number> = {}
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'game_players') {
@@ -294,7 +339,16 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
             update: jest.fn((data: any) => {
-              capturedProfit = data.profit
+              if (data.profit !== undefined) {
+                return {
+                  eq: jest.fn((field: string, value: any) => {
+                    if (field === 'id') {
+                      profits[value] = data.profit
+                    }
+                    return Promise.resolve({ data: null, error: null })
+                  }),
+                }
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -317,21 +371,26 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 0 } // Busted - $0 cash-out - $100 buy-in = -$100 loss
+      const cashOuts = {
+        [PLAYER_1_ID]: 0,   // Busted - $0 out - $100 in = -$100 loss
+        [PLAYER_2_ID]: 150, // $150 out - $50 in = +$100 profit
+      } // Total: $150 in, $150 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedProfit).toBe(-100)
+      expect(profits[GAME_PLAYER_1_ID]).toBe(-100)
     })
   })
 
   describe('Player stats updates', () => {
     test('updates player biggestWin stat when new win exceeds previous', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Loser (to balance)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 30, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
       let capturedBiggestWin: number | null = null
@@ -348,7 +407,9 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           return {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
-              capturedBiggestWin = data.biggestWin
+              if (data.biggestWin !== undefined) {
+                capturedBiggestWin = data.biggestWin
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -364,7 +425,10 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 150 } // +$50 profit, should update biggestWin from 30 to 50
+      const cashOuts = {
+        [PLAYER_1_ID]: 150, // $150 out - $100 in = +$50 profit (should update biggestWin from 30 to 50)
+        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
+      } // Total: $150 in, $150 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
@@ -373,10 +437,12 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
     test('does not update biggestWin when new win is lower', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [20] },  // Loser (to balance)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 100, biggestLoss: 0 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
       let capturedBiggestWin: number | null = null
@@ -393,7 +459,9 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           return {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
-              capturedBiggestWin = data.biggestWin
+              if (data.biggestWin !== undefined) {
+                capturedBiggestWin = data.biggestWin
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -409,7 +477,10 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 120 } // +$20 profit, should keep biggestWin at 100
+      const cashOuts = {
+        [PLAYER_1_ID]: 120, // $120 out - $100 in = +$20 profit (should keep biggestWin at 100)
+        [PLAYER_2_ID]: 0,   // $0 out - $20 in = -$20 loss
+      } // Total: $120 in, $120 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
@@ -418,10 +489,12 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
     test('updates player biggestLoss stat when new loss exceeds previous', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Loser
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (to balance)
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: -20 },
+        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
       ]
 
       let capturedBiggestLoss: number | null = null
@@ -438,7 +511,9 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           return {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
-              capturedBiggestLoss = data.biggestLoss
+              if (data.biggestLoss !== undefined) {
+                capturedBiggestLoss = data.biggestLoss
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -454,7 +529,10 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 50 } // -$50 loss, should update biggestLoss from -20 to -50
+      const cashOuts = {
+        [PLAYER_1_ID]: 50,  // $50 out - $100 in = -$50 loss (should update biggestLoss from -20 to -50)
+        [PLAYER_2_ID]: 100, // $100 out - $50 in = +$50 profit
+      } // Total: $150 in, $150 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
@@ -508,10 +586,12 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
 
     test('updates totalIn and totalOut correctly', async () => {
       const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 50] }, // $150 total buy-in
+        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 50] }, // $150 total buy-in - Winner
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },      // $50 total buy-in - Loser
       ]
       const players = [
         { id: PLAYER_1_ID, totalIn: 200, totalOut: 180, gamesPlayed: 2, biggestWin: 50, biggestLoss: -30 },
+        { id: PLAYER_2_ID, totalIn: 100, totalOut: 90, gamesPlayed: 1, biggestWin: 20, biggestLoss: -10 },
       ]
 
       let capturedTotalIn: number | null = null
@@ -529,8 +609,10 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           return {
             select: jest.fn().mockResolvedValue({ data: players, error: null }),
             update: jest.fn((data: any) => {
-              capturedTotalIn = data.totalIn
-              capturedTotalOut = data.totalOut
+              if (data.totalIn !== undefined && data.totalOut !== undefined) {
+                capturedTotalIn = data.totalIn
+                capturedTotalOut = data.totalOut
+              }
               return {
                 eq: jest.fn().mockResolvedValue({ data: null, error: null }),
               }
@@ -546,7 +628,10 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 200 } // $200 cash-out
+      const cashOuts = {
+        [PLAYER_1_ID]: 200, // $200 out - $150 in = +$50 profit
+        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
+      } // Total: $200 in, $200 out ✓
 
       await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 

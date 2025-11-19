@@ -14,7 +14,13 @@
       "Bash(supabase migration:*)",
       "Bash(psql:*)",
       "Bash(docker ps:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run test:p0:*)"
     ],
     "deny": [],
     "ask": []
