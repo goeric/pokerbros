@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { X } from '@phosphor-icons/react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -22,6 +23,17 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'md
     };
   }, [isOpen]);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const maxWidthStyles = {
@@ -32,26 +44,31 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'md
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       />
+
+      {/* Modal */}
       <div
-        className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full ${maxWidthStyles[maxWidth]} max-h-[90vh] overflow-y-auto transition-colors duration-300`}
+        className={`relative glass-panel rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-2 border-poker-gold/20 w-full ${maxWidthStyles[maxWidth]} max-h-[90vh] overflow-y-auto`}
       >
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
+        {/* Header */}
+        <div className="sticky top-0 glass-panel border-b-2 border-poker-gold/20 px-8 py-6 flex items-center justify-between z-10 rounded-t-3xl">
+          <h2 className="font-display text-3xl font-bold text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            className="p-2 hover:bg-white/10 rounded-xl transition-all text-gray-400 hover:text-white"
+            aria-label="Close modal"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X weight="bold" size={24} />
           </button>
         </div>
-        <div className="p-6">
+
+        {/* Content */}
+        <div className="p-8">
           {children}
         </div>
       </div>

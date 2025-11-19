@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokerBros | Game Manager</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Space Grotesk for headers, Inter for body -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        poker: {
+                            dark: '#050507',
+                            card: '#121216',
+                            gold: '#D4AF37',
+                            goldlight: '#F3E5AB',
+                            accent: '#3B82F6',
+                            win: '#10B981',
+                            loss: '#EF4444'
+                        }
+                    },
+                    backgroundImage: {
+                        'lux-gradient': 'linear-gradient(135deg, #1a1c2e 0%, #050507 100%)',
+                        'gold-gradient': 'linear-gradient(45deg, #D4AF37 0%, #F3E5AB 50%, #D4AF37 100%)',
+                        'card-shine': 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.05) 25%, transparent 30%)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050507;
+            color: #e4e4e7;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050507; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444; 
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-card-hover:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Subtle Grain Texture */
+        .bg-grain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Animations */
+        @keyframes pulse-gold {
+            0%, 100% { box-shadow: 0 0 5px rgba(212, 175, 55, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); }
+        }
+        
+        .animate-gold-pulse {
+            animation: pulse-gold 3s infinite;
+        }
+
+        .chip-stack {
+            transition: transform 0.3s ease;
+        }
+        .chip-stack:hover {
+            transform: translateY(-5px) rotate(2deg);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col md:flex-row overflow-hidden relative">
+    
+    <!-- Background Grain & Gradient Orbs -->
+    <div class="bg-grain"></div>
+    <div class="fixed top-0 left-0 w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+    <div class="fixed bottom-0 right-0 w-[500px] h-[500px] bg-poker-gold/10 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+
+    <!-- Mobile Header (Visible only on small screens) -->
+    <div class="md:hidden flex items-center justify-between p-6 glass-panel z-50 sticky top-0">
+        <div class="flex items-center gap-2">
+            <svg width="32" height="32" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 40C31.0457 40 40 31.0457 40 20C40 8.9543 31.0457 0 20 0C8.9543 0 0 8.9543 0 20C0 31.0457 8.9543 40 20 40Z" fill="url(#paint0_linear)"/>
+                <path d="M20 8L23.5 16H28L24.5 20.5L26 28L20 23L14 28L15.5 20.5L12 16H16.5L20 8Z" fill="#050507"/>
+                <defs>
+                    <linearGradient id="paint0_linear" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#D4AF37"/>
+                        <stop offset="1" stop-color="#8B7325"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="font-display font-bold text-xl tracking-tight">POKER<span class="text-poker-gold">BROS</span></span>
+        </div>
+        <button class="text-gray-400 hover:text-white">
+            <i class="ph ph-list text-2xl"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar Navigation (Desktop) -->
+    <aside class="hidden md:flex flex-col w-72 glass-panel h-screen sticky top-0 z-40 border-r border-white/5">
+        <div class="p-8 flex items-center gap-3">
+            <!-- Unique SVG Logo -->
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="animate-gold-pulse rounded-full">
+                <circle cx="20" cy="20" r="20" fill="url(#logoGradient)"/>
+                <path d="M20 10C20 10 25 16 25 20C25 23.5 22.5 26 20 28C17.5 26 15 23.5 15 20C15 16 20 10 20 10Z" fill="#050507"/>
+                <path d="M10 20L13 20" stroke="#050507" stroke-width="2" stroke-linecap="round"/>
+                <path d="M27 20L30 20" stroke="#050507" stroke-width="2" stroke-linecap="round"/>
+                <defs>
+                    <linearGradient id="logoGradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#F3E5AB"/>
+                        <stop offset="0.5" stop-color="#D4AF37"/>
+                        <stop offset="1" stop-color="#996515"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+            <span class="font-display font-bold text-2xl tracking-wider text-white">POKER<span class="text-poker-gold">BROS</span></span>
+        </div>
+
+        <nav class="flex-1 px-4 space-y-2 mt-4">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-white/10 text-white rounded-xl border border-white/10 transition-all group">
+                <i class="ph-fill ph-squares-four text-poker-gold group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium">Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all group">
+                <i class="ph ph-users group-hover:text-poker-gold transition-colors"></i>
+                <span class="font-medium">Members</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all group">
+                <i class="ph ph-trophy group-hover:text-poker-gold transition-colors"></i>
+                <span class="font-medium">Leaderboard</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:bg-white/5 hover:text-white rounded-xl transition-all group">
+                <i class="ph ph-clock-counter-clockwise group-hover:text-poker-gold transition-colors"></i>
+                <span class="font-medium">History</span>
+            </a>
+        </nav>
+
+        <div class="p-6 border-t border-white/5">
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-white/5 to-transparent border border-white/5">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="User" class="w-10 h-10 rounded-full border border-poker-gold">
+                <div>
+                    <p class="text-sm font-bold text-white font-display">Mike R.</p>
+                    <p class="text-xs text-gray-500">Balance: +$0</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 h-screen overflow-y-auto relative z-10 p-6 lg:p-12">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div>
+                <p class="text-poker-gold uppercase tracking-widest text-xs font-bold mb-1">Season 1</p>
+                <h1 class="font-display text-4xl md:text-5xl font-bold text-white">Dashboard</h1>
+            </div>
+            <button class="group relative px-6 py-3 bg-poker-gold text-black font-bold rounded-lg overflow-hidden shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transition-all">
+                <div class="absolute inset-0 w-full h-full bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <span class="relative flex items-center gap-2">
+                    <i class="ph-bold ph-plus"></i> Create Game
+                </span>
+            </button>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <!-- Total Games -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="ph-fill ph-cards text-6xl text-white"></i>
+                </div>
+                <p class="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Games</p>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="font-display text-4xl font-bold text-white">1</span>
+                    <span class="text-xs text-gray-500">game played</span>
+                </div>
+                <div class="w-full bg-gray-800 h-1 mt-4 rounded-full overflow-hidden">
+                    <div class="bg-white w-[10%] h-full"></div>
+                </div>
+            </div>
+
+            <!-- Total Pot -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group border-poker-gold/20">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-poker-gold blur-[50px] opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                <p class="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Pot Lifetime</p>
+                <div class="mt-2 flex items-baseline gap-2">
+                    <span class="font-display text-4xl font-bold text-poker-gold">$0</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Waiting for game data...</p>
+            </div>
+
+            <!-- Current Leader -->
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden group">
+                <p class="text-gray-400 text-sm font-medium uppercase tracking-wider">Current Leader</p>
+                <div class="mt-2 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/5 border border-dashed border-gray-600 flex items-center justify-center text-gray-500">
+                        <i class="ph ph-crown"></i>
+                    </div>
+                    <span class="font-display text-3xl font-bold text-gray-500">-</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-3 text-right w-full">No stats recorded yet</p>
+            </div>
+        </div>
+
+        <!-- Main Content Area: Next Game & List -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Next Game Spotlight (2/3 width) -->
+            <div class="lg:col-span-2">
+                <h2 class="font-display text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <i class="ph-fill ph-fire text-orange-500"></i> Next Event
+                </h2>
+
+                <div class="glass-panel rounded-3xl p-1 relative overflow-hidden group hover:border-poker-gold/30 transition-colors duration-500">
+                    <!-- Background Image/Texture for Card -->
+                    <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2073&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay grayscale group-hover:grayscale-0 transition-all duration-700"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+
+                    <div class="relative p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                        <div class="space-y-4 z-10">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-poker-gold/20 border border-poker-gold/30 text-poker-gold text-xs font-bold uppercase tracking-wider">
+                                <span class="w-2 h-2 rounded-full bg-poker-gold animate-pulse"></span>
+                                Confirmed Game
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-display text-3xl md:text-5xl font-bold text-white mb-1">Tuesday Night</h3>
+                                <p class="text-gray-400 text-lg">Standard NL Hold'em</p>
+                            </div>
+
+                            <div class="flex items-center gap-6 pt-2">
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-500 uppercase tracking-wider">Date</span>
+                                    <span class="font-display text-xl text-white font-medium">Nov 19</span>
+                                </div>
+                                <div class="w-px h-10 bg-white/10"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-500 uppercase tracking-wider">Time</span>
+                                    <span class="font-display text-xl text-poker-gold font-medium">7:03 PM</span>
+                                </div>
+                                <div class="w-px h-10 bg-white/10"></div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-500 uppercase tracking-wider">Buy-in</span>
+                                    <span class="font-display text-xl text-white font-medium">$20</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RSVP Section on Card -->
+                        <div class="glass-panel bg-black/40 backdrop-blur-md rounded-2xl p-5 border border-white/10 min-w-[200px] z-10 w-full md:w-auto">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-sm text-gray-300 font-medium">Attendance</span>
+                                <span class="text-xs text-gray-500">1/8 Seats</span>
+                            </div>
+                            
+                            <!-- Stacked Avatars -->
+                            <div class="flex -space-x-3 mb-4">
+                                <img class="w-10 h-10 rounded-full border-2 border-gray-900" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="">
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-900 bg-gray-800 flex items-center justify-center text-xs text-gray-500 opacity-50">?</div>
+                                <div class="w-10 h-10 rounded-full border-2 border-gray-900 bg-gray-800 flex items-center justify-center text-xs text-gray-500 opacity-30"></div>
+                            </div>
+
+                            <button id="rsvpBtn" onclick="toggleRSVP()" class="w-full py-2 rounded-lg bg-white text-black font-bold text-sm hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                                <i class="ph-bold ph-check"></i> I'm In
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming List (1/3 width) -->
+            <div class="lg:col-span-1">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="font-display text-xl font-bold text-white">Upcoming</h2>
+                    <a href="#" class="text-xs text-gray-500 hover:text-white transition-colors">View All</a>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Active Item (matches the spotlight) -->
+                    <div class="glass-panel rounded-xl p-4 border-l-4 border-l-poker-gold flex items-center justify-between group cursor-pointer hover:bg-white/5 transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="flex flex-col items-center bg-white/5 rounded-lg p-2 min-w-[50px]">
+                                <span class="text-xs text-gray-400 uppercase">Nov</span>
+                                <span class="font-display text-xl font-bold text-white">19</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-white">Main Event</h4>
+                                <p class="text-sm text-gray-500">7:03 PM • $20</p>
+                            </div>
+                        </div>
+                        <i class="ph-bold ph-caret-right text-gray-600 group-hover:text-white transition-colors"></i>
+                    </div>
+
+                    <!-- Future Item -->
+                    <div class="glass-panel rounded-xl p-4 border-l-4 border-l-transparent opacity-60 hover:opacity-100 flex items-center justify-between group cursor-pointer transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="flex flex-col items-center bg-white/5 rounded-lg p-2 min-w-[50px]">
+                                <span class="text-xs text-gray-400 uppercase">Dec</span>
+                                <span class="font-display text-xl font-bold text-white">02</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-white">Post-Thanksgiving</h4>
+                                <p class="text-sm text-gray-500">8:00 PM • $50</p>
+                            </div>
+                        </div>
+                         <i class="ph-bold ph-caret-right text-gray-600 group-hover:text-white transition-colors"></i>
+                    </div>
+
+                     <!-- Future Item 2 -->
+                    <div class="glass-panel rounded-xl p-4 border-l-4 border-l-transparent opacity-60 hover:opacity-100 flex items-center justify-between group cursor-pointer transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="flex flex-col items-center bg-white/5 rounded-lg p-2 min-w-[50px]">
+                                <span class="text-xs text-gray-400 uppercase">Dec</span>
+                                <span class="font-display text-xl font-bold text-white">15</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-white">Holiday Special</h4>
+                                <p class="text-sm text-gray-500">6:30 PM • $100</p>
+                            </div>
+                        </div>
+                         <i class="ph-bold ph-caret-right text-gray-600 group-hover:text-white transition-colors"></i>
+                    </div>
+                </div>
+
+                <!-- Empty State Decoration -->
+                <div class="mt-8 p-6 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center text-center">
+                    <i class="ph ph-calendar-plus text-3xl text-gray-600 mb-2"></i>
+                    <p class="text-sm text-gray-500">Propose a new date</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating elements for aesthetics -->
+        <div class="fixed bottom-10 left-10 hidden lg:block animate-float pointer-events-none z-0">
+           <!-- Abstract visual element can go here -->
+        </div>
+
+    </main>
+
+    <!-- Simple Logic for RSVP Interaction -->
+    <script>
+        let isRsvp = true;
+        const rsvpBtn = document.getElementById('rsvpBtn');
+
+        function toggleRSVP() {
+            isRsvp = !isRsvp;
+            
+            if(isRsvp) {
+                rsvpBtn.innerHTML = '<i class="ph-bold ph-check"></i> I\'m In';
+                rsvpBtn.classList.remove('bg-red-500', 'text-white');
+                rsvpBtn.classList.add('bg-white', 'text-black');
+                showNotification('Confirmed for Nov 19', 'success');
+            } else {
+                rsvpBtn.innerHTML = '<i class="ph-bold ph-x"></i> Opt Out';
+                rsvpBtn.classList.remove('bg-white', 'text-black');
+                rsvpBtn.classList.add('bg-red-500', 'text-white');
+                showNotification('You opted out', 'neutral');
+            }
+        }
+
+        function showNotification(msg, type) {
+            const notif = document.createElement('div');
+            notif.className = `fixed bottom-5 right-5 px-6 py-3 rounded-xl font-medium text-sm z-50 transform transition-all duration-300 translate-y-10 opacity-0 ${type === 'success' ? 'bg-green-500 text-black' : 'bg-gray-700 text-white'}`;
+            notif.innerText = msg;
+            document.body.appendChild(notif);
+
+            // Animate in
+            setTimeout(() => {
+                notif.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            // Remove
+            setTimeout(() => {
+                notif.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

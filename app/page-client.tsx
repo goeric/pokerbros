@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
-import { formatDate, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
+import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
+import { Spade, CurrencyDollar, Trophy, CalendarDots, Plus } from '@phosphor-icons/react';
+import FeaturedGameCard from '@/components/FeaturedGameCard';
 
 interface HomeClientProps {
   games: Game[];
@@ -91,158 +93,231 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
 
   return (
     <>
-      {/* Hero Section - Full Width Green Felt */}
-      <div className="bg-gradient-to-br from-green-700 via-green-600 to-green-800 dark:from-green-800 dark:via-green-700 dark:to-green-900 py-16 px-4 sm:px-6 lg:px-8 pb-32">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            The Ultimate Poker CMS
-          </h1>
-          <p className="text-white/90 text-lg md:text-xl max-w-3xl mx-auto">
-            Organize your home poker games with automatic RSVPs and real-time tracking
-          </p>
-        </div>
-      </div>
+      {/* Content Container - Full Width Dashboard */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          {/* Season Status */}
+          {liveGames.length > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-poker-red rounded-full animate-pulse"></div>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                Season 1 - Live
+              </p>
+            </div>
+          )}
 
-      {/* Content Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        {/* Quick Stats - Overlapping Hero */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 -mt-16 mb-12 relative z-10">
-          <Card className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Games</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{quickStats.totalGamesHosted} Total Games</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Pot</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {formatCurrency(quickStats.totalMoneyPlayed)}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </div>
-              <div className="min-w-0">
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Current Leader</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white truncate" title={quickStats.chipLeader ? formatPlayerName(quickStats.chipLeader.player) : ''}>
-                  {quickStats.chipLeader ? `${quickStats.chipLeader.player.first_name} ${quickStats.chipLeader.player.last_name}` : '-'}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Next Game</p>
-                <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {quickStats.nextGameDate ? formatDate(quickStats.nextGameDate).split(',')[0] + ' ' + formatTime(upcomingGames[0]?.time || '') : 'TBD'}
-                </p>
-              </div>
-            </div>
-          </Card>
+          {/* Page Title */}
+          <h1 className="text-4xl font-display font-bold text-white mb-4">The Floor</h1>
+
+          {/* New Table Button - Mobile Only */}
+          {isAdmin && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="md:hidden w-full py-3 px-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 border border-yellow-200 shadow-lg flex items-center justify-center gap-2"
+            >
+              <Plus weight="bold" className="text-xl" />
+              <span className="tracking-wide">New Table</span>
+            </button>
+          )}
         </div>
 
-        {/* Live Games */}
-        {liveGames.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Live Games</h3>
+        {/* Quick Stats - Top Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {/* Hands Dealt / Total Games */}
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Hands Dealt</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-4xl font-display font-bold text-white">{quickStats.totalGamesHosted}</p>
+              <p className="text-gray-400 font-medium">Game{quickStats.totalGamesHosted !== 1 ? 's' : ''}</p>
+            </div>
+          </div>
+
+          {/* Season Pot */}
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Season Pot</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-4xl font-display font-bold text-poker-gold">
+                {formatCurrency(quickStats.totalMoneyPlayed)}
+              </p>
+            </div>
+          </div>
+
+          {/* Chip Leader */}
+          <div className="glass-panel p-5 rounded-2xl">
+            <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">Chip Leader</p>
+            <div className="flex items-center gap-3">
+              {quickStats.chipLeader ? (
+                <>
+                  <img
+                    src={`/avatars/${quickStats.chipLeader.player.avatar}`}
+                    alt={formatPlayerName(quickStats.chipLeader.player)}
+                    className="w-10 h-10 rounded-full border-2 border-poker-gold shadow-lg"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display font-bold text-white truncate">
+                      {formatPlayerName(quickStats.chipLeader.player)}
+                    </p>
+                    <p className="text-xs text-poker-gold">
+                      +{formatCurrency(quickStats.chipLeader.profit)}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p className="text-gray-400">-</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Dashboard Layout - Two Columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+          {/* Left Column - Featured Next Deal or Live Game */}
+          <div className="lg:col-span-2">
+            {liveGames.length > 0 ? (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <Spade weight="fill" className="text-poker-gold" size={24} />
+                  <h2 className="text-3xl font-display font-bold text-white">Next Deal</h2>
+                </div>
+                <FeaturedGameCard
+                  game={liveGames[0]}
+                  confirmedCount={getRsvpCounts(liveGames[0].id).confirmed}
+                  confirmedPlayers={rsvps
+                    .filter(r => r.gameId === liveGames[0].id && r.status === 'confirmed')
+                    .map(r => players.find(p => p.id === r.playerId))
+                    .filter((p): p is Player => p !== undefined)}
+                />
+              </>
+            ) : upcomingGamesList.length > 0 ? (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <Spade weight="fill" className="text-poker-gold" size={24} />
+                  <h2 className="text-3xl font-display font-bold text-white">Next Deal</h2>
+                </div>
+                <FeaturedGameCard
+                  game={upcomingGamesList[0]}
+                  confirmedCount={getRsvpCounts(upcomingGamesList[0].id).confirmed}
+                  confirmedPlayers={rsvps
+                    .filter(r => r.gameId === upcomingGamesList[0].id && r.status === 'confirmed')
+                    .map(r => players.find(p => p.id === r.playerId))
+                    .filter((p): p is Player => p !== undefined)}
+                />
+              </>
+            ) : (
+              <div className="glass-panel p-12 text-center rounded-2xl">
+                <Spade weight="fill" className="text-poker-gold text-6xl mx-auto mb-4 animate-gold-pulse" />
+                <h3 className="text-2xl font-display font-bold text-white mb-2">NO GAMES SCHEDULED</h3>
+                <p className="text-gray-400 mb-6">
+                  {isAdmin ? 'Create a new game to get started!' : 'Check back soon for upcoming games!'}
+                </p>
               </div>
+            )}
+          </div>
+
+          {/* Right Column - Future Games Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-display font-bold text-white">Future Games</h2>
+              {upcomingGamesList.length > 1 && (
+                <span className="text-poker-gold text-sm font-bold uppercase tracking-wide">View All</span>
+              )}
             </div>
-            <div className="grid gap-6">
-              {liveGames.map(game => {
+            <div className="space-y-4">
+              {upcomingGamesList.slice(liveGames.length > 0 ? 0 : 1, 4).map(game => {
                 const { confirmed, waitlist } = getRsvpCounts(game.id);
-                return <GameCard key={game.id} game={game} confirmedCount={confirmed} waitlistCount={waitlist} />;
+                const dateWithDay = formatDateWithDay(game.date); // e.g., "Fri, Jan 16"
+                const [dayOfWeek, monthDay] = dateWithDay.split(','); // ["Fri", " Jan 16"]
+
+                // Get confirmed players for this game
+                const confirmedPlayers = rsvps
+                  .filter(r => r.gameId === game.id && r.status === 'confirmed')
+                  .map(r => players.find(p => p.id === r.playerId))
+                  .filter((p): p is Player => p !== undefined);
+
+                return (
+                  <a key={game.id} href={`/game/${game.id}`} className="block glass-panel p-4 rounded-xl hover:bg-white/5 transition-colors border border-white/5 hover:border-poker-gold/30">
+                    <div className="space-y-3">
+                      {/* Day of Week + Date */}
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-poker-gold font-bold mb-1">
+                          {dayOfWeek}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <CalendarDots weight="bold" className="text-poker-gold" size={18} />
+                          <p className="font-display font-bold text-white text-lg">
+                            {monthDay.trim()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Time & Buy-in */}
+                      <p className="text-sm text-gray-400">
+                        {formatTime(game.time)} • {formatCurrency(game.buyIn)}
+                      </p>
+
+                      {/* Player Avatars */}
+                      {confirmedPlayers.length > 0 && (
+                        <div className="flex -space-x-2 flex-wrap gap-y-1">
+                          {confirmedPlayers.slice(0, 8).map((player, idx) => (
+                            <img
+                              key={player.id}
+                              src={`/avatars/${player.avatar}`}
+                              alt={formatPlayerName(player)}
+                              title={formatPlayerName(player)}
+                              className="w-7 h-7 rounded-full border-2 border-gray-900 shadow-lg"
+                              style={{ zIndex: 80 - idx * 10 }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Seat Indicator */}
+                      <div className="flex items-center gap-1">
+                        {[...Array(Math.min(8, confirmed))].map((_, i) => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-poker-gold" />
+                        ))}
+                        {[...Array(Math.max(0, 8 - confirmed))].map((_, i) => (
+                          <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-700" />
+                        ))}
+                      </div>
+                    </div>
+                  </a>
+                );
               })}
+              {upcomingGamesList.length === 0 && (
+                <div className="glass-panel p-6 text-center rounded-xl">
+                  <p className="text-gray-400 text-sm">No upcoming games</p>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Upcoming Games */}
-        {upcomingGamesList.length > 0 && (
-          <div className="mb-12">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">Upcoming Games</h3>
-            <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
-              {upcomingGamesList.map(game => {
-                const { confirmed, waitlist } = getRsvpCounts(game.id);
-                return <GameCard key={game.id} game={game} confirmedCount={confirmed} waitlistCount={waitlist} />;
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Past Games */}
+        {/* Recent Games - Simplified */}
         {recentGames.length > 0 && (
           <div className="mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Games</h3>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {recentGames.map(game => {
+            <h3 className="text-xl font-display font-bold text-white mb-6">Recent Games</h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              {recentGames.slice(0, 3).map(game => {
                 const { confirmed, waitlist } = getRsvpCounts(game.id);
                 return <GameCard key={game.id} game={game} compact confirmedCount={confirmed} waitlistCount={waitlist} />;
               })}
             </div>
           </div>
         )}
-
-        {/* Empty State */}
-        {games.length === 0 && (
-          <Card className="p-12 text-center">
-            <p className="text-6xl mb-4">🎴</p>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No Games Yet</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {isAdmin ? 'Get started by hosting your first poker night!' : 'Check back soon for upcoming games!'}
-            </p>
-            {isAdmin && (
-              <Button onClick={() => setShowCreateModal(true)}>
-                Host Your First Game
-              </Button>
-            )}
-          </Card>
-        )}
-
       </div>
       {/* End Content Container */}
 
-      {/* Floating Action Button - Admin Only */}
+      {/* Floating Action Button - Desktop Only (Mobile has button in header) */}
       {isAdmin && (
         <button
           onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-8 right-8 flex items-center gap-2 px-6 py-3 bg-poker-green hover:bg-green-700 dark:hover:bg-green-600 text-white rounded-full shadow-2xl hover:shadow-xl transition-all duration-200 z-30 hover:scale-105 font-semibold"
+          className="hidden md:flex fixed bottom-8 right-8 items-center gap-2 px-6 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] transition-all duration-200 z-[9999] hover:scale-105 border border-yellow-200"
           aria-label="Host New Game"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Host New Game</span>
+          <Plus weight="bold" className="text-xl" />
+          <span className="tracking-wide">HOST NEW GAME</span>
         </button>
       )}
 

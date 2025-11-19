@@ -3,12 +3,10 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency } from '@/lib/utils';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
-import ChipIcon from '@/components/ChipIcon';
+import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import { finalizeGameResults } from './actions';
+import { CurrencyDollar, Minus, Plus, CheckCircle, XCircle, Trophy } from '@phosphor-icons/react';
 
 interface CashOutClientProps {
   game: Game;
@@ -84,22 +82,23 @@ export default function CashOutClient({
 
       {/* Header */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Cash-Out Recording</h1>
-        <p className="text-gray-600 dark:text-gray-400">Record final cash-out amounts for each player</p>
+        <div className="flex items-center justify-center gap-3 mb-3">
+          <Trophy weight="fill" className="text-poker-gold text-5xl" />
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-white drop-shadow-lg">Cash-Out</h1>
+        </div>
+        <p className="text-gray-400 text-lg">Record final cash-out amounts for each player</p>
       </div>
 
       {/* Total Pot Reminder */}
-      <Card className="p-6 mb-8 text-center card-gradient">
-        <p className="text-gray-600 dark:text-gray-400 text-sm uppercase tracking-wide mb-2">
-          Total Pot to Distribute
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <ChipIcon className="w-10 h-10 text-poker-gold-light dark:text-poker-gold-dark" />
-          <p className="text-5xl font-bold text-poker-gold-light dark:text-poker-gold-dark">
+      <div className="glass-panel rounded-2xl p-10 mb-8 text-center border-2 border-poker-gold/30 bg-gradient-to-b from-poker-gold/10 to-transparent shadow-[0_0_50px_rgba(212,175,55,0.2)]">
+        <p className="text-gray-400 text-sm uppercase tracking-widest mb-4 font-bold">Total Pot to Distribute</p>
+        <div className="flex items-center justify-center gap-4">
+          <CurrencyDollar weight="fill" className="text-poker-gold text-6xl animate-gold-pulse" />
+          <p className="font-display text-7xl md:text-8xl font-bold text-poker-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]">
             {formatCurrency(totalIn)}
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Player List */}
       <div className="space-y-4 mb-8">
@@ -112,58 +111,60 @@ export default function CashOutClient({
           const profit = cashOut - totalBuyIn;
 
           return (
-            <Card key={gamePlayer.id} className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                    {player.first_name} {player.nickname ? `"${player.nickname}"` : ''} {player.last_name}
+            <div key={gamePlayer.id} className="glass-panel rounded-2xl p-6 border border-white/10 hover:border-poker-gold/30 transition-all">
+              <div className="flex items-start gap-4 mb-6">
+                <img
+                  src={`/avatars/${player.avatar}`}
+                  alt={formatPlayerName(player)}
+                  className="w-16 h-16 rounded-full border-2 border-poker-gold/50 shadow-lg flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-display text-xl font-bold text-white mb-1 truncate">
+                    {formatPlayerName(player)}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Total in: {formatCurrency(totalBuyIn)}
+                  <p className="text-gray-400 text-sm">
+                    Total in: <span className="text-white font-semibold">{formatCurrency(totalBuyIn)}</span>
                   </p>
                 </div>
-                <div className={`text-right ${profit >= 0 ? 'text-poker-profit' : 'text-poker-loss'}`}>
-                  <p className="text-2xl font-bold">
+                <div className={`text-right flex-shrink-0 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <p className="text-3xl font-display font-bold">
                     {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
                   </p>
-                  <p className="text-sm">
+                  <p className="text-xs uppercase tracking-wider font-semibold">
                     {profit >= 0 ? 'profit' : 'loss'}
                   </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <Button
-                  size="sm"
-                  variant="ghost"
+              {/* Quick Set Buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
                   onClick={() => handleQuickSet(gamePlayer.playerId, 'busted')}
                   disabled={isPending}
+                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 font-bold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Busted ($0)
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                </button>
+                <button
                   onClick={() => handleQuickSet(gamePlayer.playerId, 'even')}
                   disabled={isPending}
+                  className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-400 font-bold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Even ({formatCurrency(totalBuyIn)})
-                </Button>
+                </button>
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
+              {/* Cash Out Input */}
+              <div className="flex items-center gap-2">
+                <button
                   onClick={() => updateCashOut(gamePlayer.playerId, cashOut - 5)}
                   disabled={isPending}
+                  className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  -$5
-                </Button>
+                  <Minus weight="bold" size={20} />
+                </button>
                 <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400">
-                    $
-                  </span>
+                  <CurrencyDollar weight="bold" className="absolute left-4 top-1/2 -translate-y-1/2 text-poker-gold text-xl" />
                   <input
                     type="number"
                     value={cashOut}
@@ -171,66 +172,72 @@ export default function CashOutClient({
                     min="0"
                     step="5"
                     disabled={isPending}
-                    className="w-full pl-7 pr-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-center font-bold text-lg focus:ring-2 focus:ring-poker-green focus:border-transparent disabled:opacity-50"
+                    className="w-full pl-12 pr-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-lg text-white text-center font-display font-bold text-2xl focus:ring-2 focus:ring-poker-gold/20 focus:outline-none disabled:opacity-50 transition-all"
                   />
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
+                <button
                   onClick={() => updateCashOut(gamePlayer.playerId, cashOut + 5)}
                   disabled={isPending}
+                  className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  +$5
-                </Button>
+                  <Plus weight="bold" size={20} />
+                </button>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
 
       {/* Validation Section */}
-      <Card className={`p-6 mb-6 ${validation.valid ? 'border-green-700' : 'border-red-700'}`}>
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Validation</h3>
-        <div className="grid grid-cols-3 gap-4 text-center">
+      <div className={`glass-panel rounded-2xl p-8 mb-6 border-2 ${validation.valid ? 'border-green-500/50 bg-gradient-to-b from-green-950/30 to-transparent' : 'border-red-500/50 bg-gradient-to-b from-red-950/30 to-transparent'}`}>
+        <div className="flex items-center gap-3 mb-6">
+          {validation.valid ? (
+            <CheckCircle weight="fill" className="text-green-400 text-3xl" />
+          ) : (
+            <XCircle weight="fill" className="text-red-400 text-3xl" />
+          )}
+          <h3 className="font-display text-2xl font-bold text-white">Validation</h3>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 text-center">
           <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total In</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">Total In</p>
+            <p className="font-display text-3xl font-bold text-white">
               {formatCurrency(validation.totalIn)}
             </p>
           </div>
           <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Out</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">Total Out</p>
+            <p className="font-display text-3xl font-bold text-white">
               {formatCurrency(validation.totalOut)}
             </p>
           </div>
           <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Difference</p>
-            <p className={`text-2xl font-bold ${validation.valid ? 'text-poker-profit' : 'text-poker-loss'}`}>
+            <p className="text-gray-400 text-sm mb-2 uppercase tracking-wider font-semibold">Difference</p>
+            <p className={`font-display text-3xl font-bold ${validation.valid ? 'text-green-400' : 'text-red-400'}`}>
               {formatCurrency(Math.abs(validation.difference))}
             </p>
           </div>
         </div>
 
         {!validation.valid && (
-          <div className="mt-4 p-3 bg-red-900/30 border border-red-700 rounded-lg">
-            <p className="text-red-400 text-sm font-medium text-center">
-              ⚠️ Totals must match before finalizing!
+          <div className="mt-6 p-4 bg-red-900/30 border border-red-500/50 rounded-xl">
+            <p className="text-red-400 font-bold text-center flex items-center justify-center gap-2">
+              <XCircle weight="fill" size={20} />
+              Totals must match before finalizing!
             </p>
           </div>
         )}
-      </Card>
+      </div>
 
       {/* Finalize Button */}
-      <Button
+      <button
         onClick={handleFinalize}
         disabled={!validation.valid || isPending}
-        variant="primary"
-        fullWidth
-        size="lg"
+        className="w-full px-8 py-5 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold text-xl rounded-xl transition-all border border-yellow-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-poker-gold disabled:hover:to-yellow-600"
       >
         {isPending ? 'Finalizing...' : 'Finalize Results'}
-      </Button>
+      </button>
     </>
   );
 }

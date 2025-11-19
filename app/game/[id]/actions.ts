@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { RSVPSchema, GameSchema, formatZodError } from '@/lib/validation';
 import { sendEmail } from '@/lib/email/send-email';
+import { shouldSendNotification } from '@/lib/email/check-preferences';
 import { generateGameIcs } from '@/lib/email/generate-ics';
 import { createEmailActionToken } from '@/lib/email/action-tokens';
 import RsvpConfirmation from '@/emails/templates/RsvpConfirmation';
@@ -101,31 +102,34 @@ export async function addRSVP(gameId: string, playerId: string) {
         });
 
         // Generate calendar invite
-        const icsContent = generateGameIcs({
-          game: game as Game,
-          location,
-          playerEmail: player.email,
-          status: 'CONFIRMED',
-          sequence: 0,
-        });
+        // Check if player wants RSVP confirmation emails
+        if (await shouldSendNotification(player.email, 'rsvp_confirmed')) {
+          const icsContent = generateGameIcs({
+            game: game as Game,
+            location,
+            playerEmail: player.email,
+            status: 'CONFIRMED',
+            sequence: 0,
+          });
 
-        // Send email with calendar invite
-        await sendEmail({
-          to: player.email,
-          subject: `RSVP Confirmed: ${formatDate(game.date)} Poker Night`,
-          react: RsvpConfirmation({
-            gameId: game.id,
-            playerName: formatPlayerName(player as Player),
-            date: formatDate(game.date),
-            time: formatTime(game.time),
-            location: location.name,
-            address: location.address,
-            buyIn: game.buyIn,
-            notes: game.notes || undefined,
-            cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
-          }),
-          icsContent: icsContent || undefined,
-        });
+          // Send email with calendar invite
+          await sendEmail({
+            to: player.email,
+            subject: `RSVP Confirmed: ${formatDate(game.date)} Poker Night`,
+            react: RsvpConfirmation({
+              gameId: game.id,
+              playerName: formatPlayerName(player as Player),
+              date: formatDate(game.date),
+              time: formatTime(game.time),
+              location: location.name,
+              address: location.address,
+              buyIn: game.buyIn,
+              notes: game.notes || undefined,
+              cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
+            }),
+            icsContent: icsContent || undefined,
+          });
+        }
       }
     }
 
@@ -222,20 +226,22 @@ export async function cancelRSVP(gameId: string, playerId: string) {
         sequence: 1, // Increment sequence for update
       });
 
-      // Send cancellation email
-      await sendEmail({
-        to: player.email,
-        subject: `RSVP Cancelled: ${formatDate(game.date)} Poker Night`,
-        react: RsvpCancellation({
-          gameId: game.id,
-          playerName: formatPlayerName(player as Player),
-          date: formatDate(game.date),
-          time: formatTime(game.time),
-          location: location.name,
-          rsvpUrl: tokenResult.success ? tokenResult.url : undefined,
-        }),
-        icsContent: icsContent || undefined,
-      });
+      // Send cancellation email (check preference)
+      if (await shouldSendNotification(player.email, 'rsvp_cancelled')) {
+        await sendEmail({
+          to: player.email,
+          subject: `RSVP Cancelled: ${formatDate(game.date)} Poker Night`,
+          react: RsvpCancellation({
+            gameId: game.id,
+            playerName: formatPlayerName(player as Player),
+            date: formatDate(game.date),
+            time: formatTime(game.time),
+            location: location.name,
+            rsvpUrl: tokenResult.success ? tokenResult.url : undefined,
+          }),
+          icsContent: icsContent || undefined,
+        });
+      }
     }
 
     // Auto-promote first waitlist player if a confirmed spot opened
@@ -274,23 +280,25 @@ export async function cancelRSVP(gameId: string, playerId: string) {
               sequence: 0,
             });
 
-            // Send waitlist promotion email
-            await sendEmail({
-              to: promotedPlayer.email,
-              subject: `You're In! ${formatDate(game.date)} Poker Night`,
-              react: WaitlistPromotion({
-                gameId: game.id,
-                playerName: formatPlayerName(promotedPlayer),
-                date: formatDate(game.date),
-                time: formatTime(game.time),
-                location: location.name,
-                address: location.address,
-                buyIn: game.buyIn,
-                notes: game.notes || undefined,
-                cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
-              }),
-              icsContent: icsContent || undefined,
-            });
+            // Send waitlist promotion email (check preference)
+            if (await shouldSendNotification(promotedPlayer.email, 'waitlist_promoted')) {
+              await sendEmail({
+                to: promotedPlayer.email,
+                subject: `You're In! ${formatDate(game.date)} Poker Night`,
+                react: WaitlistPromotion({
+                  gameId: game.id,
+                  playerName: formatPlayerName(promotedPlayer),
+                  date: formatDate(game.date),
+                  time: formatTime(game.time),
+                  location: location.name,
+                  address: location.address,
+                  buyIn: game.buyIn,
+                  notes: game.notes || undefined,
+                  cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
+                }),
+                icsContent: icsContent || undefined,
+              });
+            }
           }
         }
       }
