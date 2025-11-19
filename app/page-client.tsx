@@ -107,14 +107,27 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
             </div>
           )}
 
-          {/* Page Title */}
-          <h1 className="text-4xl font-display font-bold text-white mb-4">The Floor</h1>
+          {/* Page Title + Host Button */}
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-4xl font-display font-bold text-white">The Floor</h1>
+
+            {/* Host New Game Button - Desktop */}
+            {isAdmin && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="hidden md:flex items-center gap-2 px-6 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 border border-yellow-200 shadow-lg hover:scale-105"
+              >
+                <Plus weight="bold" size={20} />
+                <span className="tracking-wide">HOST NEW GAME</span>
+              </button>
+            )}
+          </div>
 
           {/* New Table Button - Mobile Only */}
           {isAdmin && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="md:hidden w-full py-3 px-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 border border-yellow-200 shadow-lg flex items-center justify-center gap-2"
+              className="md:hidden w-full py-3 px-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-xl transition-all duration-200 border border-yellow-200 shadow-lg flex items-center justify-center gap-2 mb-4"
             >
               <Plus weight="bold" className="text-xl" />
               <span className="tracking-wide">New Table</span>
@@ -265,7 +278,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                               src={`/avatars/${player.avatar}`}
                               alt={formatPlayerName(player)}
                               title={formatPlayerName(player)}
-                              className="w-7 h-7 rounded-full border-2 border-gray-900 shadow-lg"
+                              className="w-7 h-7 rounded-full border-2 border-gray-900 bg-gray-800 shadow-lg"
                               style={{ zIndex: 80 - idx * 10 }}
                             />
                           ))}
@@ -310,18 +323,6 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
         )}
       </div>
       {/* End Content Container */}
-
-      {/* Floating Action Button - Desktop Only (Mobile has button in header) */}
-      {isAdmin && (
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="hidden md:flex fixed bottom-8 right-8 items-center gap-2 px-6 py-4 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-display font-bold rounded-full shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] transition-all duration-200 z-[9999] hover:scale-105 border border-yellow-200"
-          aria-label="Host New Game"
-        >
-          <Plus weight="bold" className="text-xl" />
-          <span className="tracking-wide">HOST NEW GAME</span>
-        </button>
-      )}
 
       {/* Create Game Modal */}
       <CreateGameModal
