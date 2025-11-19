@@ -3,7 +3,7 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-provider';
-import Navigation from '@/components/Navigation';
+import NavigationV2 from '@/components/NavigationV2';
 import UnauthorizedUser from '@/components/UnauthorizedUser';
 import { getServerAuth } from '@/lib/auth-server';
 
@@ -99,24 +99,28 @@ export default async function RootLayout({
             {auth.isUnauthorized ? (
               <UnauthorizedUser />
             ) : (
-              <>
-                {/* Pass server auth state directly to Navigation - no flash! */}
-                <Navigation
+              <div className="flex">
+                {/* Sidebar Navigation */}
+                <NavigationV2
                   isAdmin={auth.isAdmin}
                   user={auth.user}
                   role={auth.role}
                 />
-                <main className="min-h-screen relative z-10">
-                  {children}
-                </main>
-                <footer className="relative z-10 bg-poker-dark/50 border-t border-white/5 mt-20 transition-colors duration-300">
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <p className="text-center text-gray-400 text-sm">
-                      PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
-                    </p>
-                  </div>
-                </footer>
-              </>
+
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col min-h-screen">
+                  <main className="flex-1 relative z-10">
+                    {children}
+                  </main>
+                  <footer className="relative z-10 bg-poker-dark/50 border-t border-white/5 mt-20 transition-colors duration-300">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                      <p className="text-center text-gray-400 text-sm">
+                        PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
+                      </p>
+                    </div>
+                  </footer>
+                </div>
+              </div>
             )}
           </AuthProvider>
         </ThemeProvider>
