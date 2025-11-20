@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:p0": "jest __tests__/p0-critical"
+    "test:p0": "jest __tests__/p0-critical",
+    "test:p1": "jest __tests__/p1-important"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
