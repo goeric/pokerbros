@@ -12,7 +12,7 @@ export async function updateSetting(key: string, value: boolean) {
 
     const { error } = await supabase
       .from('settings')
-      .update({ value: value.toString() })
+      .update({ value })
       .eq('key', key);
 
     if (error) {
