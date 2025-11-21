@@ -164,7 +164,7 @@ export default async function RootLayout({
                 <footer className="relative z-10 border-t border-white/5 mt-20 pointer-events-none">
                   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <p className="text-center text-gray-400 text-sm pointer-events-auto">
-                      PokerBros &copy; {new Date().getFullYear()} - Never Miss a Full Table
+                      PokerBros &copy; {new Date().getFullYear()}
                     </p>
                   </div>
                 </footer>
