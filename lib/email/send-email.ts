@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 // Lazy-initialize Resend to avoid build errors when API key isn't available
@@ -10,6 +11,23 @@ function getResend() {
     resendInstance = new Resend(process.env.RESEND_API_KEY);
   }
   return resendInstance;
+}
+
+/**
+ * Create a service role Supabase client (bypasses RLS)
+ * Use only for trusted server-side operations
+ */
+function createServiceRoleClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
 }
 
 /**
@@ -89,19 +107,9 @@ export async function sendEmail({
     let filteredRecipients = recipients;
 
     if (superadminOnly) {
-      const cookieStore = await cookies();
-
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value;
-            },
-          },
-        }
-      );
+      // Use service role client to bypass RLS when querying admin_users
+      // This is safe because we're only reading superadmin emails for filtering
+      const supabase = createServiceRoleClient();
 
       // Get all superadmin emails
       const { data: superadmins } = await supabase
