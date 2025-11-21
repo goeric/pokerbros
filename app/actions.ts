@@ -68,7 +68,9 @@ export async function createGame(gameData: {
 
       // Send individual emails with unique RSVP tokens
       if (players && players.length > 0) {
-        for (const player of players) {
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+
           // Generate one-click RSVP token
           const tokenResult = await createEmailActionToken({
             gameId: data.id,
@@ -90,6 +92,12 @@ export async function createGame(gameData: {
               rsvpUrl: tokenResult.success ? tokenResult.url : undefined,
             }),
           });
+
+          // Add delay between sends to respect Resend rate limit (2 req/sec)
+          // Use 1 second delay for safety margin
+          if (i < players.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
         }
       }
     }
