@@ -159,29 +159,64 @@ export async function sendEmail({
         ]
       : undefined;
 
-    // Send email via Resend
-    const { data, error } = await getResend().emails.send({
-      from: `${process.env.RESEND_FROM_NAME || 'PokerBros'} <${
-        process.env.RESEND_FROM_EMAIL || 'poker@pokerbros.xyz'
-      }>`,
-      to: filteredRecipients,
-      subject,
-      html: await render(react),
-      attachments,
-    });
+    // Render HTML once (reuse for all recipients)
+    const htmlContent = await render(react);
 
-    if (error) {
-      console.error('[EMAIL] Error sending email:', error);
-      return { success: false, error: error.message };
+    // Send individual emails to each recipient to avoid rate limits
+    // Resend rate limit: 2 requests/second, so add 1000ms delay for safety margin
+    const successfulRecipients: string[] = [];
+    const failedRecipients: string[] = [];
+
+    for (let i = 0; i < filteredRecipients.length; i++) {
+      const recipient = filteredRecipients[i];
+
+      try {
+        const { error } = await getResend().emails.send({
+          from: `${process.env.RESEND_FROM_NAME || 'PokerBros'} <${
+            process.env.RESEND_FROM_EMAIL || 'poker@pokerbros.xyz'
+          }>`,
+          to: recipient,
+          subject,
+          html: htmlContent,
+          attachments,
+        });
+
+        if (error) {
+          console.error(`[EMAIL] Failed to send to ${recipient}:`, error);
+          failedRecipients.push(recipient);
+        } else {
+          successfulRecipients.push(recipient);
+        }
+
+        // Add 1 second delay between sends to stay well under rate limit (2 req/sec)
+        // Skip delay after last email
+        if (i < filteredRecipients.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error: any) {
+        console.error(`[EMAIL] Unexpected error sending to ${recipient}:`, error);
+        failedRecipients.push(recipient);
+      }
     }
 
-    console.log(
-      `[EMAIL] Sent successfully to ${filteredRecipients.length} recipient(s): "${subject}"`
-    );
+    if (failedRecipients.length > 0) {
+      console.error(
+        `[EMAIL] Failed to send to ${failedRecipients.length} recipient(s): ${failedRecipients.join(', ')}`
+      );
+    }
+
+    if (successfulRecipients.length > 0) {
+      console.log(
+        `[EMAIL] Sent successfully to ${successfulRecipients.length} recipient(s): "${subject}"`
+      );
+    }
 
     return {
-      success: true,
-      filteredRecipients,
+      success: successfulRecipients.length > 0,
+      filteredRecipients: successfulRecipients,
+      error: failedRecipients.length > 0
+        ? `Failed to send to ${failedRecipients.length} recipient(s)`
+        : undefined,
     };
   } catch (error: any) {
     console.error('[EMAIL] Unexpected error sending email:', error);
