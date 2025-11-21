@@ -171,6 +171,13 @@ export async function sendEmail({
       const recipient = filteredRecipients[i];
 
       try {
+        // Add delay BEFORE each send (except first) to respect rate limits
+        if (i > 0) {
+          console.log(`[EMAIL] Waiting 1 second before sending to recipient ${i + 1}/${filteredRecipients.length}...`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+
+        console.log(`[EMAIL] Sending to ${recipient} (${i + 1}/${filteredRecipients.length})...`);
         const { error } = await getResend().emails.send({
           from: `${process.env.RESEND_FROM_NAME || 'PokerBros'} <${
             process.env.RESEND_FROM_EMAIL || 'poker@pokerbros.xyz'
@@ -185,13 +192,8 @@ export async function sendEmail({
           console.error(`[EMAIL] Failed to send to ${recipient}:`, error);
           failedRecipients.push(recipient);
         } else {
+          console.log(`[EMAIL] Successfully sent to ${recipient}`);
           successfulRecipients.push(recipient);
-        }
-
-        // Add 1 second delay between sends to stay well under rate limit (2 req/sec)
-        // Skip delay after last email
-        if (i < filteredRecipients.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } catch (error: any) {
         console.error(`[EMAIL] Unexpected error sending to ${recipient}:`, error);
