@@ -65,7 +65,7 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     mockSupabase = {
       from: jest.fn(),
       auth: {
-        getSession: jest.fn(),
+        getUser: jest.fn(),
       },
     }
 
@@ -76,9 +76,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('assigns confirmed status when fewer than 8 players', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 5 existing confirmed RSVPs
@@ -157,9 +157,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('assigns confirmed status for exactly 8th player', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 7 existing confirmed RSVPs
@@ -238,9 +238,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('assigns waitlist status for 9th player', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 8 existing confirmed RSVPs (game is full)
@@ -296,9 +296,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('assigns sequential waitlist positions', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 8 confirmed + 2 waitlist RSVPs
@@ -368,9 +368,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('assigns position 1 for first waitlist player', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 8 confirmed, 0 waitlist
@@ -425,9 +425,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('does not send confirmation email to waitlisted players', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 8 existing confirmed RSVPs (game is full)
@@ -470,9 +470,9 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
     test('correctly counts only confirmed RSVPs when determining status', async () => {
       const playerId = '123e4567-e89b-12d3-a456-426614174001'
 
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       // Setup: 7 confirmed + 5 waitlist (should still allow 8th confirmed)

@@ -70,7 +70,7 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
       from: jest.fn(),
       rpc: jest.fn(),
       auth: {
-        getSession: jest.fn(),
+        getUser: jest.fn(),
       },
     }
 
@@ -79,9 +79,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
 
   describe('Basic promotion flow', () => {
     test('promotes first waitlist player when confirmed player cancels', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -192,9 +192,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
     })
 
     test('does not promote if no waitlist players exist', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -289,9 +289,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
     })
 
     test('does not promote when waitlist player cancels', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -381,9 +381,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
 
   describe('Promotion notifications', () => {
     test('sends waitlist promotion email to promoted player', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -497,9 +497,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
     })
 
     test('includes calendar invite in promotion email', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -621,9 +621,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
     })
 
     test('respects notification preferences for promotion email', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -743,9 +743,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
 
   describe('Edge cases', () => {
     test('handles promotion when promoted player has no email', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {
@@ -860,9 +860,9 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
     })
 
     test('handles database promotion failure gracefully', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } } },
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: { id: ADMIN_USER_ID, email: 'admin@test.com' } },
       })
 
       const rsvp = {

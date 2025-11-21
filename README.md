@@ -1,6 +1,6 @@
 # PokerBros
 
-**Never Miss a Full Table** - A modern web application for managing home poker games with real-time tracking and player statistics.
+**Track buy-ins, results, and seats for your regular house poker game** - A modern web application for managing home poker games with real-time tracking and player statistics.
 
 ![PokerBros](https://img.shields.io/badge/Built%20with-Next.js-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)

@@ -27,7 +27,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'PokerBros - Never Miss a Full Table',
+  title: 'PokerBros - Track buy-ins, results, and seats for your regular house poker game',
   description: 'Manage your home poker games with real-time tracking and player statistics',
   icons: {
     icon: '/favicon.svg',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://pokerbros.vercel.app'),
   openGraph: {
-    title: 'PokerBros - Never Miss a Full Table',
+    title: 'PokerBros - Track buy-ins, results, and seats for your regular house poker game',
     description: 'Manage your home poker games with real-time tracking and player statistics',
     siteName: 'PokerBros',
     locale: 'en_US',
@@ -45,13 +45,13 @@ export const metadata: Metadata = {
         url: '/ogimage.png',
         width: 1200,
         height: 630,
-        alt: 'PokerBros - Never Miss a Full Table',
+        alt: 'PokerBros - Track buy-ins, results, and seats for your regular house poker game',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PokerBros - Never Miss a Full Table',
+    title: 'PokerBros - Track buy-ins, results, and seats for your regular house poker game',
     description: 'Manage your home poker games with real-time tracking and player statistics',
     images: ['/ogimage.png'],
   },

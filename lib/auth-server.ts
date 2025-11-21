@@ -48,12 +48,12 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
     }
   );
 
-  // Get current session
+  // Get current user (validates session with auth server)
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return {
       user: null,
       isAdmin: false,
@@ -69,7 +69,7 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
   const { data: adminUser } = await supabase
     .from('admin_users')
     .select('role, is_superadmin')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   const role = adminUser?.role as UserRole | null;
@@ -78,7 +78,7 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
   const { data: player } = await supabase
     .from('players')
     .select('id')
-    .eq('email', session.user.email)
+    .eq('email', user.email)
     .single();
 
   const isPlayer = !!player;
@@ -88,7 +88,7 @@ export async function getServerAuth(): Promise<ServerAuthResult> {
   const isUnauthorized = !hasRole && !isPlayer;
 
   return {
-    user: session.user,
+    user,
     isAdmin: !!adminUser && (role === 'admin' || role === 'superadmin'),
     isSuperAdmin: role === 'superadmin',
     role,

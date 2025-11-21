@@ -20,7 +20,11 @@
       "Bash(git push:*)",
       "Bash(npx supabase:*)",
       "Bash(npm install:*)",
-      "Bash(npm run test:p0:*)"
+      "Bash(npm run test:p0:*)",
+      "Bash(find:*)",
+      "Bash(npm run test:p1:*)",
+      "Bash(npm test)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []

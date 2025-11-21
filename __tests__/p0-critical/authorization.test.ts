@@ -58,7 +58,7 @@ describe('P0.4: Authorization (Critical)', () => {
     mockSupabase = {
       from: jest.fn(),
       auth: {
-        getSession: jest.fn(),
+        getUser: jest.fn(),
       },
     }
 
@@ -67,9 +67,9 @@ describe('P0.4: Authorization (Critical)', () => {
 
   describe('Unauthenticated access', () => {
     test('rejects RSVP from unauthenticated user', async () => {
-      // Setup: No session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: null },
+      // Setup: No user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: null },
       })
 
       const result = await addRSVP(GAME_ID, PLAYER_1_ID)
@@ -78,9 +78,9 @@ describe('P0.4: Authorization (Critical)', () => {
     })
 
     test('rejects RSVP cancellation from unauthenticated user', async () => {
-      // Setup: No session
-      mockSupabase.auth.getSession.mockResolvedValue({
-        data: { session: null },
+      // Setup: No user
+      mockSupabase.auth.getUser.mockResolvedValue({
+        data: { user: null },
       })
 
       const result = await cancelRSVP(GAME_ID, PLAYER_1_ID)
@@ -91,12 +91,10 @@ describe('P0.4: Authorization (Critical)', () => {
 
   describe('Non-admin user restrictions', () => {
     test('allows users to RSVP for themselves only', async () => {
-      // Setup: Regular user session
-      mockSupabase.auth.getSession.mockResolvedValue({
+      // Setup: Regular user
+      mockSupabase.auth.getUser.mockResolvedValue({
         data: {
-          session: {
-            user: { id: REGULAR_USER_ID, email: 'user@test.com' }
-          }
+          user: { id: REGULAR_USER_ID, email: 'user@test.com' }
         },
       })
 
@@ -165,12 +163,10 @@ describe('P0.4: Authorization (Critical)', () => {
     })
 
     test('rejects users RSVPing for other players', async () => {
-      // Setup: Regular user session
-      mockSupabase.auth.getSession.mockResolvedValue({
+      // Setup: Regular user
+      mockSupabase.auth.getUser.mockResolvedValue({
         data: {
-          session: {
-            user: { id: REGULAR_USER_ID, email: 'user@test.com' }
-          }
+          user: { id: REGULAR_USER_ID, email: 'user@test.com' }
         },
       })
 
@@ -206,12 +202,10 @@ describe('P0.4: Authorization (Critical)', () => {
     })
 
     test('allows users to cancel only their own RSVP', async () => {
-      // Setup: Regular user session
-      mockSupabase.auth.getSession.mockResolvedValue({
+      // Setup: Regular user
+      mockSupabase.auth.getUser.mockResolvedValue({
         data: {
-          session: {
-            user: { id: REGULAR_USER_ID, email: 'user@test.com' }
-          }
+          user: { id: REGULAR_USER_ID, email: 'user@test.com' }
         },
       })
 
@@ -293,12 +287,10 @@ describe('P0.4: Authorization (Critical)', () => {
     })
 
     test('rejects users canceling other players RSVPs', async () => {
-      // Setup: Regular user session
-      mockSupabase.auth.getSession.mockResolvedValue({
+      // Setup: Regular user
+      mockSupabase.auth.getUser.mockResolvedValue({
         data: {
-          session: {
-            user: { id: REGULAR_USER_ID, email: 'user@test.com' }
-          }
+          user: { id: REGULAR_USER_ID, email: 'user@test.com' }
         },
       })
 
@@ -336,12 +328,10 @@ describe('P0.4: Authorization (Critical)', () => {
 
   describe('Admin access', () => {
     test('allows admins to delete games', async () => {
-      // Setup: Admin session
-      mockSupabase.auth.getSession.mockResolvedValue({
+      // Setup: Admin user
+      mockSupabase.auth.getUser.mockResolvedValue({
         data: {
-          session: {
-            user: { id: ADMIN_USER_ID, email: 'admin@test.com' }
-          }
+          user: { id: ADMIN_USER_ID, email: 'admin@test.com' }
         },
       })
 

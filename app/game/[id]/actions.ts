@@ -20,8 +20,8 @@ export async function addRSVP(gameId: string, playerId: string) {
     const supabase = await createSupabaseServerClient();
 
     // ✅ Authorization check - Allow admins OR users RSVPing for themselves
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       throw new Error('Unauthorized: Please sign in');
     }
 
@@ -29,7 +29,7 @@ export async function addRSVP(gameId: string, playerId: string) {
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     const isAdmin = !!adminUser;
@@ -42,7 +42,7 @@ export async function addRSVP(gameId: string, playerId: string) {
         .eq('id', playerId)
         .single();
 
-      if (!player || player.email !== session.user.email) {
+      if (!player || player.email !== user.email) {
         throw new Error('Unauthorized: You can only RSVP for yourself');
       }
     }
@@ -145,8 +145,8 @@ export async function cancelRSVP(gameId: string, playerId: string) {
     const supabase = await createSupabaseServerClient();
 
     // ✅ Authorization check - Allow admins OR users canceling their own RSVP
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
       throw new Error('Unauthorized: Please sign in');
     }
 
@@ -154,7 +154,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
     const { data: adminUser } = await supabase
       .from('admin_users')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     const isAdmin = !!adminUser;
@@ -167,7 +167,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
         .eq('id', playerId)
         .single();
 
-      if (!player || player.email !== session.user.email) {
+      if (!player || player.email !== user.email) {
         throw new Error('Unauthorized: You can only cancel your own RSVP');
       }
     }

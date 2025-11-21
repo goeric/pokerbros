@@ -43,19 +43,19 @@ export async function proxy(req: NextRequest) {
   );
 
   try {
-    // Get the current session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get the current user (validates session)
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    logger.debug('[Proxy] Session check', {
-      hasSession: !!session,
-      sessionError: sessionError?.message,
-      userId: session?.user?.id,
+    logger.debug('[Proxy] User check', {
+      hasUser: !!user,
+      userError: userError?.message,
+      userId: user?.id,
       cookies: req.cookies.getAll().map(c => c.name).join(', ') || 'none',
     });
 
-    // No session - redirect to login
-    if (!session) {
-      logger.info('[Proxy] No session found, redirecting to login');
+    // No user - redirect to login
+    if (!user) {
+      logger.info('[Proxy] No user found, redirecting to login');
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
@@ -63,7 +63,7 @@ export async function proxy(req: NextRequest) {
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
 
     logger.debug('[Proxy] Admin check', {

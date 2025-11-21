@@ -45,24 +45,24 @@ export async function createSupabaseServerClient() {
  */
 export async function requireAdmin(supabase: SupabaseClient) {
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     throw new Error('Unauthorized: Please sign in');
   }
 
   const { data: adminUser } = await supabase
     .from('admin_users')
     .select('id')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   if (!adminUser) {
     throw new Error('Unauthorized: Admin access required');
   }
 
-  return session.user;
+  return user;
 }
 
 /**
