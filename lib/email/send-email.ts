@@ -84,9 +84,9 @@ interface EmailResult {
 /**
  * Send an email via Resend with safety filtering
  *
- * IMPORTANT: When email_superadmin_only flag is enabled (default in production),
+ * IMPORTANT: When email_superadmin_only flag is enabled (default),
  * only sends emails to superadmins to prevent accidentally spamming real players.
- * Always filtered to superadmins in non-production environments.
+ * Toggle the flag in /admin/settings to control this behavior in any environment.
  */
 export async function sendEmail({
   to,
@@ -97,11 +97,9 @@ export async function sendEmail({
   try {
     const recipients = Array.isArray(to) ? to : [to];
 
-    // Check feature flag for email filtering
+    // Check feature flag for email filtering in all environments
     // Default to true (superadmin-only) for safety
-    const superadminOnly = process.env.NODE_ENV !== 'production'
-      ? true // Always filter in dev/staging
-      : await getFeatureFlag('email_superadmin_only', true); // Check flag in production
+    const superadminOnly = await getFeatureFlag('email_superadmin_only', true);
 
     // Safety filter: Only send to superadmins if flag is enabled
     let filteredRecipients = recipients;
