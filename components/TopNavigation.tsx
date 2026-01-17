@@ -11,14 +11,13 @@ import PokerBrosLogo from './PokerBrosLogo';
 import { Spade, GearSix, Crown, List, X } from '@phosphor-icons/react';
 
 interface TopNavigationProps {
-  isAdmin: boolean;
   user: User | null;
   role: UserRole | null;
   playerAvatar?: string;
   playerName?: string;
 }
 
-export default function TopNavigation({ isAdmin, user, role, playerAvatar = 'avatar1.svg', playerName = '' }: TopNavigationProps) {
+export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg', playerName = '' }: TopNavigationProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

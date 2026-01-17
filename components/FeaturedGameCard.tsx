@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Game, Player } from '@/types';
-import { formatDate, formatDateWithDay, formatTime, formatCurrency } from '@/lib/utils';
+import { formatDateWithDay, formatTime, formatCurrency } from '@/lib/utils';
 import { Coins } from '@phosphor-icons/react';
 
 interface FeaturedGameCardProps {

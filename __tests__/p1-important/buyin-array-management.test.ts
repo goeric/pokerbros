@@ -9,7 +9,7 @@
  */
 
 import { addRebuy } from '@/app/game/[id]/live/actions'
-import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import { createSupabaseServerClient, requireAdmin } from '@/lib/auth-helpers'
 import type { User } from '@supabase/supabase-js'
 
 // Mock dependencies

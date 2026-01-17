@@ -13,7 +13,7 @@
  */
 
 import { addRSVP, cancelRSVP, deleteGame } from '@/app/game/[id]/actions'
-import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import { createSupabaseServerClient, requireAdmin } from '@/lib/auth-helpers'
 
 // Mock dependencies
 jest.mock('@/lib/auth-helpers', () => ({

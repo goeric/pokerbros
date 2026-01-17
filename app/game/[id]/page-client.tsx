@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useTransition, useEffect, useRef } from 'react';
+import { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { User } from '@supabase/supabase-js';
 import { Game, RSVP, Player } from '@/types';
-import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isToday } from '@/lib/utils';
+import { formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isToday } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import GameFormModal from '@/components/GameFormModal';
 import { addRSVP, cancelRSVP, startGame, updateGame, deleteGame } from './actions';
-import { CalendarDots, Clock, MapPin, CurrencyDollar, Users, Play, Pencil, Trash, Check, X, Trophy, ListBullets } from '@phosphor-icons/react';
+import { Clock, MapPin, CurrencyDollar, Users, Play, Pencil, Trash, Check, X, Trophy, ListBullets } from '@phosphor-icons/react';
 
 interface GameDetailClientProps {
   game: Game;
@@ -144,12 +144,6 @@ export default function GameDetailClient({
 
   // Determine display status based on actual state
   const displayStatus = gameShouldBeLive ? 'in_progress' : game.status;
-
-  const statusColors = {
-    upcoming: 'info',
-    in_progress: 'warning',
-    completed: 'success',
-  } as const;
 
   const statusLabels = {
     upcoming: 'Upcoming',

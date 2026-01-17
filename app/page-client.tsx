@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
-import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
+import { formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
-import { Spade, CurrencyDollar, Trophy, CalendarDots, Plus } from '@phosphor-icons/react';
+import { Spade, CalendarDots, Plus } from '@phosphor-icons/react';
 import FeaturedGameCard from '@/components/FeaturedGameCard';
 
 interface HomeClientProps {

@@ -148,7 +148,6 @@ export default async function RootLayout({
               <div className="flex flex-col min-h-screen">
                 {/* Top Navigation */}
                 <TopNavigation
-                  isAdmin={auth.isAdmin}
                   user={auth.user}
                   role={auth.role}
                   playerAvatar={playerAvatar}

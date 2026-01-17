@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Player } from '@/types';
 import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
-import { Crown, Trophy, Medal, TrendUp, TrendDown, Download, FishSimple, DiamondsFour, Fire, Snowflake, ChartLineUp } from '@phosphor-icons/react';
+import { Crown, Download, FishSimple, DiamondsFour, Fire, Snowflake, ChartLineUp } from '@phosphor-icons/react';
 
 type FilterType = 'all' | 'recent5' | 'month';
 

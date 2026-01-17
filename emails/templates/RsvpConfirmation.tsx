@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Text, Heading, Link } from '@react-email/components';
 import EmailLayout from '../components/EmailLayout';
 import GameDetails from '../components/GameDetails';

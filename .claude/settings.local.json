@@ -24,7 +24,8 @@
       "Bash(find:*)",
       "Bash(npm run test:p1:*)",
       "Bash(npm test)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

@@ -9,12 +9,11 @@ import { UserRole } from '@/lib/auth-server';
 import ThemeToggle from './ThemeToggle';
 
 interface NavigationProps {
-  isAdmin: boolean;
   user: User | null;
   role: UserRole | null;
 }
 
-export default function Navigation({ isAdmin, user, role }: NavigationProps) {
+export default function Navigation({ user, role }: NavigationProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {

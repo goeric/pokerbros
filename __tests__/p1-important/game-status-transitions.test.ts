@@ -10,7 +10,7 @@
 
 import { startGame } from '@/app/game/[id]/actions'
 import { finalizeGameResults } from '@/app/game/[id]/cashout/actions'
-import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import { createSupabaseServerClient, requireAdmin } from '@/lib/auth-helpers'
 
 // Mock dependencies
 jest.mock('@/lib/auth-helpers', () => ({

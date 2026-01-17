@@ -13,7 +13,7 @@
  */
 
 import { addRSVP } from '@/app/game/[id]/actions'
-import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import { createSupabaseServerClient } from '@/lib/auth-helpers'
 import { sendEmail } from '@/lib/email/send-email'
 import { shouldSendNotification } from '@/lib/email/check-preferences'
 import { generateGameIcs } from '@/lib/email/generate-ics'
