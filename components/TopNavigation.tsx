@@ -2,6 +2,7 @@
 
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -80,9 +81,12 @@ export default function TopNavigation({ isAdmin, user, role, playerAvatar = 'ava
                 <div className="flex items-center gap-3 ml-4 pl-4 border-l border-white/10">
                   <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                     <div className="relative">
-                      <img
+                      <Image
                         src={`/avatars/${playerAvatar}`}
                         alt="Avatar"
+                        width={32}
+                        height={32}
+                        unoptimized
                         className="w-8 h-8 rounded-full border-2 border-poker-gold bg-black"
                       />
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
@@ -158,9 +162,12 @@ export default function TopNavigation({ isAdmin, user, role, playerAvatar = 'ava
                       className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-black/40 to-transparent border border-white/5 hover:bg-white/5 transition-colors"
                     >
                       <div className="relative">
-                        <img
+                        <Image
                           src={`/avatars/${playerAvatar}`}
                           alt="Avatar"
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 rounded-full border-2 border-poker-gold bg-black"
                         />
                         <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { CaretLeft, Warning } from '@phosphor-icons/react';
 import PokerBrosLogo from '@/components/PokerBrosLogo';
@@ -86,13 +87,13 @@ export default function LoginPage() {
 
           {/* Footer Link */}
           <div className="mt-8 text-center">
-            <a
+            <Link
               href="/"
               className="text-sm text-gray-400 hover:text-poker-gold transition-colors inline-flex items-center gap-2 font-medium group"
             >
               <CaretLeft weight="bold" className="group-hover:-translate-x-1 transition-transform" size={16} />
               Back to home
-            </a>
+            </Link>
           </div>
         </div>
       </div>

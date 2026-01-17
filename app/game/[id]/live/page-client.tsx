@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import { formatCurrency, formatPlayerName } from '@/lib/utils';
@@ -144,9 +145,12 @@ export default function LiveGameClient({
               )}
 
               <div className="flex items-start gap-4 mb-6">
-                <img
+                <Image
                   src={`/avatars/${player.avatar}`}
                   alt={formatPlayerName(player)}
+                  width={64}
+                  height={64}
+                  unoptimized
                   className="w-16 h-16 rounded-full border-2 border-poker-gold/50 shadow-lg flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
@@ -209,7 +213,7 @@ export default function LiveGameClient({
               <div>
                 <h3 className="font-display text-2xl font-bold text-white mb-1">Ready to cash out?</h3>
                 <p className="text-gray-400 text-sm">
-                  End the game and record everyone's final cash-out amounts
+                  End the game and record everyone&apos;s final cash-out amounts
                 </p>
               </div>
             </div>

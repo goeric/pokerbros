@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Game, Player } from '@/types';
 import { formatDate, formatDateWithDay, formatTime, formatCurrency } from '@/lib/utils';
 import { Coins } from '@phosphor-icons/react';
@@ -86,13 +87,16 @@ export default function FeaturedGameCard({
           <div className="flex -space-x-3 mb-5 pl-2">
             {/* Show first 4 avatars */}
             {confirmedPlayers.slice(0, 4).map((player, idx) => (
-              <img
+              <Image
                 key={player.id}
                 className="w-10 h-10 rounded-full border-2 border-gray-900 bg-gray-800 shadow-lg relative"
                 style={{ zIndex: 40 - idx * 10 }}
                 src={`/avatars/${player.avatar}`}
                 alt={`${player.first_name} ${player.last_name}`}
                 title={`${player.first_name} ${player.last_name}`}
+                width={40}
+                height={40}
+                unoptimized
               />
             ))}
 

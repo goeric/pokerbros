@@ -124,17 +124,16 @@ describe('P0.4: Authorization (Critical)', () => {
         if (table === 'rsvps') {
           return {
             select: jest.fn().mockReturnThis(),
-            eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
-              .mockImplementation((field: string) => {
-                if (field === 'gameId') {
-                  return Promise.resolve({ data: [], error: null })
-                }
-                return {
-                  eq: jest.fn(() => ({
-                    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-                  })),
-                }
-              }),
+            eq: jest.fn().mockImplementation((field: string) => {
+              if (field === 'gameId') {
+                return Promise.resolve({ data: [], error: null })
+              }
+              return {
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({ data: null, error: null }),
+                })),
+              }
+            }),
             insert: jest.fn().mockResolvedValue({ data: null, error: null }),
           }
         }

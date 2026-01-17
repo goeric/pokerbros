@@ -49,7 +49,7 @@ export default function GameCreated({
       <Button href={rsvpUrl || gameUrl}>RSVP Now</Button>
 
       <Text style={smallText}>
-        Can't make it? No problem - we'll see you at the next one!
+        Can&apos;t make it? No problem - we&apos;ll see you at the next one!
       </Text>
     </EmailLayout>
   );

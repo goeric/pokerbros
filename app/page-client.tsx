@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
 import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
 import Card from '@/components/Card';
@@ -162,9 +163,12 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
             <div className="flex items-center gap-3">
               {quickStats.chipLeader ? (
                 <>
-                  <img
+                  <Image
                     src={`/avatars/${quickStats.chipLeader.player.avatar}`}
                     alt={formatPlayerName(quickStats.chipLeader.player)}
+                    width={40}
+                    height={40}
+                    unoptimized
                     className="w-10 h-10 rounded-full border-2 border-poker-gold shadow-lg"
                   />
                   <div className="min-w-0 flex-1">
@@ -273,11 +277,14 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                       {confirmedPlayers.length > 0 && (
                         <div className="flex -space-x-2 flex-wrap gap-y-1">
                           {confirmedPlayers.slice(0, 8).map((player, idx) => (
-                            <img
+                            <Image
                               key={player.id}
                               src={`/avatars/${player.avatar}`}
                               alt={formatPlayerName(player)}
                               title={formatPlayerName(player)}
+                              width={28}
+                              height={28}
+                              unoptimized
                               className="w-7 h-7 rounded-full border-2 border-gray-900 bg-gray-800 shadow-lg"
                               style={{ zIndex: 80 - idx * 10 }}
                             />

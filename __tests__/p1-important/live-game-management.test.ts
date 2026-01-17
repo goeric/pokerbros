@@ -11,6 +11,24 @@
 
 import { addRebuy, removeLastRebuy } from '@/app/game/[id]/live/actions'
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import type { User } from '@supabase/supabase-js'
+
+// Mock admin user for tests
+const mockAdminUser: User = {
+  id: 'admin-123e4567-e89b-12d3-a456-426614174001',
+  aud: 'authenticated',
+  role: 'authenticated',
+  email: 'admin@test.com',
+  email_confirmed_at: '2024-01-01T00:00:00.000Z',
+  phone: '',
+  confirmed_at: '2024-01-01T00:00:00.000Z',
+  created_at: '2024-01-01T00:00:00.000Z',
+  updated_at: '2024-01-01T00:00:00.000Z',
+  app_metadata: {},
+  user_metadata: {},
+  identities: [],
+  factors: [],
+}
 
 // Mock dependencies
 jest.mock('@/lib/auth-helpers', () => ({
@@ -58,7 +76,7 @@ describe('P1.1: Live Game Management (Important)', () => {
   describe('Adding rebuys', () => {
     test('admin can add rebuy to any player during live game', async () => {
       // Setup: Admin is authorized
-      mockRequireAdmin.mockResolvedValue(undefined)
+      mockRequireAdmin.mockResolvedValue(mockAdminUser)
 
       const existingBuyIns = [100]
       const newRebuyAmount = 100
@@ -100,7 +118,7 @@ describe('P1.1: Live Game Management (Important)', () => {
     })
 
     test('rebuy amount added to player\'s buyIns array', async () => {
-      mockRequireAdmin.mockResolvedValue(undefined)
+      mockRequireAdmin.mockResolvedValue(mockAdminUser)
 
       const existingBuyIns = [100, 50] // Player already has a rebuy
       const newRebuyAmount = 75
@@ -147,7 +165,7 @@ describe('P1.1: Live Game Management (Important)', () => {
 
   describe('Removing rebuys', () => {
     test('admin can remove last rebuy (error correction)', async () => {
-      mockRequireAdmin.mockResolvedValue(undefined)
+      mockRequireAdmin.mockResolvedValue(mockAdminUser)
 
       const existingBuyIns = [100, 100] // Initial + 1 rebuy
 
@@ -182,7 +200,7 @@ describe('P1.1: Live Game Management (Important)', () => {
     })
 
     test('cannot remove initial buy-in (minimum 1 buy-in per player)', async () => {
-      mockRequireAdmin.mockResolvedValue(undefined)
+      mockRequireAdmin.mockResolvedValue(mockAdminUser)
 
       const existingBuyIns = [100] // Only initial buy-in
 

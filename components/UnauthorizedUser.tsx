@@ -39,7 +39,7 @@ export default function UnauthorizedUser() {
             Your account is not registered for poker night.
           </p>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Please email the admin if you'd like to be added to the player list.
+            Please email the admin if you&apos;d like to be added to the player list.
           </p>
         </div>
 

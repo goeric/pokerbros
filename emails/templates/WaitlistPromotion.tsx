@@ -40,7 +40,7 @@ export default function WaitlistPromotion({
       </Text>
 
       <Text style={highlight}>
-        You've been promoted from the waitlist. Your spot is now confirmed!
+        You&apos;ve been promoted from the waitlist. Your spot is now confirmed!
       </Text>
 
       <GameDetails
@@ -56,7 +56,7 @@ export default function WaitlistPromotion({
 
       {cancelRsvpUrl && (
         <Text style={paragraph}>
-          Can't make it?{' '}
+          Can&apos;t make it?{' '}
           <a href={cancelRsvpUrl} style={link}>
             Cancel my RSVP
           </a>

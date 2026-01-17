@@ -56,7 +56,7 @@ export default function GameFormModal({
       }
     }
     fetchLocations();
-  }, []);
+  }, [locationId]);
 
   // Update form when initialData changes (for edit mode)
   useEffect(() => {

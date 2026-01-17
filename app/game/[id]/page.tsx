@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { Game, RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
@@ -74,14 +75,14 @@ export default async function GameDetailPage({ params, searchParams }: GamePageP
         <p className="text-4xl mb-4">🎴</p>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Game Not Found</h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          This game may have been deleted or doesn't exist.
+          This game may have been deleted or doesn&apos;t exist.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block px-6 py-3 bg-poker-green hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
         >
           Back to Home
-        </a>
+        </Link>
       </div>
     );
   }

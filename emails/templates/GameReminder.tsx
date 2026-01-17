@@ -57,7 +57,7 @@ export default function GameReminder({
 
       {is24Hour && (
         <Text style={bringCash}>
-          💵 Don't forget to bring cash for the ${buyIn} buy-in!
+          💵 Don&apos;t forget to bring cash for the ${buyIn} buy-in!
         </Text>
       )}
 

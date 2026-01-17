@@ -10,6 +10,7 @@
 
 import { addRebuy } from '@/app/game/[id]/live/actions'
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers'
+import type { User } from '@supabase/supabase-js'
 
 // Mock dependencies
 jest.mock('@/lib/auth-helpers', () => ({
@@ -50,7 +51,19 @@ describe('P1.3: Buy-in Array Management (Important)', () => {
     }
 
     mockCreateSupabaseServerClient.mockResolvedValue(mockSupabase)
-    mockRequireAdmin.mockResolvedValue(undefined)
+
+    // Mock admin user with required User properties
+    const mockUser: User = {
+      id: 'admin-123e4567-e89b-12d3-a456-426614174001',
+      email: 'admin@test.com',
+      aud: 'authenticated',
+      role: 'authenticated',
+      app_metadata: {},
+      user_metadata: {},
+      identities: [],
+      created_at: new Date().toISOString(),
+    }
+    mockRequireAdmin.mockResolvedValue(mockUser)
   })
 
   describe('Array operations', () => {
@@ -172,7 +185,12 @@ describe('P1.3: Buy-in Array Management (Important)', () => {
 
       // Validation should reject negative amounts (actual error message from validation)
       expect(result).toHaveProperty('error')
-      expect(result.error).toContain('must be at least $1')
+      // Type narrowing: check that result has 'error' property before accessing
+      if ('error' in result) {
+        expect(result.error).toContain('must be at least $1')
+      } else {
+        fail('Expected result to have error property')
+      }
     })
   })
 })

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getServerAuth } from '@/lib/auth-server';
 import { Player, Game, GamePlayer } from '@/types';
 import ProfileClient from './page-client';
@@ -55,12 +56,12 @@ export default async function ProfilePage() {
         <p className="text-gray-400 mb-6">
           You need to be added as a player to access your profile.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block px-6 py-3 bg-poker-green hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
         >
           Back to Home
-        </a>
+        </Link>
       </div>
     );
   }

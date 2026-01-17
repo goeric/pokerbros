@@ -30,8 +30,8 @@ export default function RsvpConfirmation({
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
   return (
-    <EmailLayout preview={`You're confirmed for Poker Night - ${date}`}>
-      <Heading style={h1}>You're all set! 🎴</Heading>
+    <EmailLayout preview={`You&apos;re confirmed for Poker Night - ${date}`}>
+      <Heading style={h1}>You&apos;re all set! 🎴</Heading>
 
       <Text style={paragraph}>Hi {playerName},</Text>
 

@@ -2,6 +2,7 @@
 
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/lib/auth-server';
@@ -30,7 +31,7 @@ export default function Navigation({ isAdmin, user, role }: NavigationProps) {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center">
-              <img src="/logo.svg" alt="PokerBros" className="h-10 w-auto" />
+              <Image src="/logo.svg" alt="PokerBros" width={40} height={40} unoptimized className="h-10 w-auto" />
             </Link>
           </div>
           <div className="flex items-center gap-3">

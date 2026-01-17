@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import { updateProfile, updateAvatar, updateNotificationPreferences } from './actions';
 import { IdentificationCard, ChartLineUp, Camera, UserSwitch, Check, X } from '@phosphor-icons/react';
+import Image from 'next/image';
 
 interface ProfileClientProps {
   player: Player;
@@ -99,9 +100,12 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
             onClick={() => setShowAvatarDrawer(true)}
           >
             <div className="w-40 h-40 rounded-full border-4 border-poker-gold p-1 bg-black shadow-[0_0_30px_rgba(212,175,55,0.2)] overflow-hidden">
-              <img
+              <Image
                 src={`/avatars/${selectedAvatar}`}
                 alt="Avatar"
+                width={160}
+                height={160}
+                unoptimized
                 className="w-full h-full rounded-full transition-transform duration-500 group-hover:scale-110"
               />
             </div>
@@ -114,7 +118,7 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
             {formatPlayerName(player, false)}
           </h2>
           {player.nickname && (
-            <p className="text-poker-gold font-medium mb-6">"{player.nickname}"</p>
+            <p className="text-poker-gold font-medium mb-6">&quot;{player.nickname}&quot;</p>
           )}
 
           <div className="w-full space-y-3 mt-4">
@@ -315,9 +319,12 @@ export default function ProfileClient({ player, gameHistory }: ProfileClientProp
                         : 'border-white/5'
                     }`}
                   >
-                    <img
+                    <Image
                       src={`/avatars/${avatar}`}
                       alt={avatar}
+                      width={80}
+                      height={80}
+                      unoptimized
                       className="w-full h-full rounded-full bg-black/20"
                     />
                   </div>

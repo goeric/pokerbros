@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Player } from '@/types';
 import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
@@ -144,10 +145,13 @@ export default function StatsClient({ players }: StatsClientProps) {
                 2
               </div>
               <div className="mt-4 mb-3 w-20 h-20 rounded-full border-2 border-gray-400 p-1 bg-black overflow-hidden">
-                <img
+                <Image
                   src={`/avatars/${filteredStats[1].avatar}`}
                   alt={formatPlayerName(filteredStats[1])}
+                  width={80}
+                  height={80}
                   className="w-full h-full rounded-full"
+                  unoptimized
                 />
               </div>
               <h3 className="font-display font-bold text-lg text-white mb-1">
@@ -172,10 +176,13 @@ export default function StatsClient({ players }: StatsClientProps) {
                 <Crown weight="fill" className="text-5xl text-poker-gold drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] animate-bounce" />
               </div>
               <div className="mt-6 mb-4 w-28 h-28 rounded-full border-4 border-poker-gold p-1 shadow-[0_0_20px_rgba(212,175,55,0.3)] bg-black overflow-hidden">
-                <img
+                <Image
                   src={`/avatars/${filteredStats[0].avatar}`}
                   alt={formatPlayerName(filteredStats[0])}
+                  width={112}
+                  height={112}
                   className="w-full h-full rounded-full"
+                  unoptimized
                 />
               </div>
               <div className="bg-poker-gold/20 px-3 py-1 rounded-full border border-poker-gold/40 text-poker-gold text-xs font-bold uppercase tracking-widest mb-2">
@@ -202,10 +209,13 @@ export default function StatsClient({ players }: StatsClientProps) {
                 3
               </div>
               <div className="mt-4 mb-3 w-20 h-20 rounded-full border-2 border-orange-700 p-1 bg-black overflow-hidden">
-                <img
+                <Image
                   src={`/avatars/${filteredStats[2].avatar}`}
                   alt={formatPlayerName(filteredStats[2])}
+                  width={80}
+                  height={80}
                   className="w-full h-full rounded-full"
+                  unoptimized
                 />
               </div>
               <h3 className="font-display font-bold text-lg text-white mb-1">
@@ -273,10 +283,13 @@ export default function StatsClient({ players }: StatsClientProps) {
                       {/* Player */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <img
+                          <Image
                             src={`/avatars/${stat.avatar}`}
                             alt={formatPlayerName(stat)}
+                            width={32}
+                            height={32}
                             className="w-8 h-8 rounded-full border border-gray-600"
+                            unoptimized
                           />
                           <span className="font-bold text-white font-display">
                             {formatPlayerName(stat)}

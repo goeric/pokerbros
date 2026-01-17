@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import Image from 'next/image';
 import { Game, GamePlayer, Player } from '@/types';
 import { formatCurrency, formatPlayerName } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
@@ -19,20 +19,53 @@ export default function CashOutClient({
   gamePlayers,
   players,
 }: CashOutClientProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Initialize cash-outs from existing data
   const initialCashOuts: Record<string, number> = {};
+  const initialInputValues: Record<string, string> = {};
   gamePlayers.forEach(gp => {
     initialCashOuts[gp.playerId] = gp.cashOut || 0;
+    initialInputValues[gp.playerId] = String(gp.cashOut || 0);
   });
   const [cashOuts, setCashOuts] = useState<Record<string, number>>(initialCashOuts);
+  const [inputValues, setInputValues] = useState<Record<string, string>>(initialInputValues);
 
   const updateCashOut = (playerId: string, amount: number) => {
+    const validAmount = Math.max(0, amount);
     setCashOuts(prev => ({
       ...prev,
-      [playerId]: Math.max(0, amount),
+      [playerId]: validAmount,
+    }));
+    setInputValues(prev => ({
+      ...prev,
+      [playerId]: String(validAmount),
+    }));
+  };
+
+  const handleInputChange = (playerId: string, value: string) => {
+    // Allow empty string or valid numbers
+    setInputValues(prev => ({
+      ...prev,
+      [playerId]: value,
+    }));
+
+    // Update numeric value (treat empty as 0 for calculations)
+    const numericValue = value === '' ? 0 : Number(value);
+    if (!isNaN(numericValue)) {
+      setCashOuts(prev => ({
+        ...prev,
+        [playerId]: Math.max(0, numericValue),
+      }));
+    }
+  };
+
+  const handleInputBlur = (playerId: string) => {
+    // On blur, normalize the display value
+    const currentValue = cashOuts[playerId] || 0;
+    setInputValues(prev => ({
+      ...prev,
+      [playerId]: String(currentValue),
     }));
   };
 
@@ -113,9 +146,12 @@ export default function CashOutClient({
           return (
             <div key={gamePlayer.id} className="glass-panel rounded-2xl p-6 border border-white/10 hover:border-poker-gold/30 transition-all">
               <div className="flex items-start gap-4 mb-6">
-                <img
+                <Image
                   src={`/avatars/${player.avatar}`}
                   alt={formatPlayerName(player)}
+                  width={64}
+                  height={64}
+                  unoptimized
                   className="w-16 h-16 rounded-full border-2 border-poker-gold/50 shadow-lg flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
@@ -128,7 +164,7 @@ export default function CashOutClient({
                 </div>
                 <div className={`text-right flex-shrink-0 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   <p className="text-3xl font-display font-bold">
-                    {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
+                    {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
                   </p>
                   <p className="text-xs uppercase tracking-wider font-semibold">
                     {profit >= 0 ? 'profit' : 'loss'}
@@ -157,7 +193,7 @@ export default function CashOutClient({
               {/* Cash Out Input */}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => updateCashOut(gamePlayer.playerId, cashOut - 5)}
+                  onClick={() => updateCashOut(gamePlayer.playerId, cashOut - 1)}
                   disabled={isPending}
                   className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -167,16 +203,17 @@ export default function CashOutClient({
                   <CurrencyDollar weight="bold" className="absolute left-4 top-1/2 -translate-y-1/2 text-poker-gold text-xl" />
                   <input
                     type="number"
-                    value={cashOut}
-                    onChange={(e) => updateCashOut(gamePlayer.playerId, Number(e.target.value))}
+                    value={inputValues[gamePlayer.playerId] ?? ''}
+                    onChange={(e) => handleInputChange(gamePlayer.playerId, e.target.value)}
+                    onBlur={() => handleInputBlur(gamePlayer.playerId)}
                     min="0"
-                    step="5"
+                    step="1"
                     disabled={isPending}
                     className="w-full pl-12 pr-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-lg text-white text-center font-display font-bold text-2xl focus:ring-2 focus:ring-poker-gold/20 focus:outline-none disabled:opacity-50 transition-all"
                   />
                 </div>
                 <button
-                  onClick={() => updateCashOut(gamePlayer.playerId, cashOut + 5)}
+                  onClick={() => updateCashOut(gamePlayer.playerId, cashOut + 1)}
                   disabled={isPending}
                   className="w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >

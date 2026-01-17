@@ -3,6 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Player } from '@/types';
 import { UserRole } from '@/lib/auth-server';
 import PlayerModal from './PlayerModal';
@@ -138,9 +139,12 @@ export default function AdminClient({ initialPlayers, canEdit, userRole }: Admin
                   return (
                     <tr key={player.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="py-4 px-6">
-                        <img
+                        <Image
                           src={`/avatars/${player.avatar}`}
                           alt={`${player.first_name} ${player.last_name}`}
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 rounded-full border-2 border-poker-gold/50 shadow-lg"
                         />
                       </td>

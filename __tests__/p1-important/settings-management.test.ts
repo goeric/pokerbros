@@ -110,7 +110,9 @@ describe('P1.1: Settings Management (Important)', () => {
 
       // Critical: String "false" is truthy in JavaScript, boolean false is falsy
       expect(!!capturedValue).toBe(false)
-      expect(!!'false').toBe(true) // Demonstrate the bug this test prevents
+      // Demonstrate the bug this test prevents: string "false" is truthy
+      const stringFalse = 'false' as string
+      expect(!!stringFalse).toBe(true)
     })
 
     test('JavaScript truthiness verification', () => {
@@ -389,7 +391,8 @@ describe('P1.1: Settings Management (Important)', () => {
       const result = await updateSetting('email_superadmin_only', true)
 
       expect(result).toHaveProperty('error')
-      expect(result.success).toBeUndefined()
+      // Use type narrowing: check if 'success' property exists before accessing
+      expect('success' in result ? result.success : undefined).toBeUndefined()
     })
   })
 })

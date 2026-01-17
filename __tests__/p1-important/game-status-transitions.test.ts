@@ -60,7 +60,11 @@ describe('P1.2: Game Status Transitions (Important)', () => {
     }
 
     mockCreateSupabaseServerClient.mockResolvedValue(mockSupabase)
-    mockRequireAdmin.mockResolvedValue(undefined)
+    // Provide a mock User object instead of undefined
+    mockRequireAdmin.mockResolvedValue({
+      id: 'admin-123e4567-e89b-12d3-a456-426614174001',
+      email: 'admin@test.com',
+    } as any)
   })
 
   describe('Status workflow', () => {

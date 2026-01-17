@@ -264,17 +264,16 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
         if (table === 'rsvps') {
           return {
             select: jest.fn().mockReturnThis(),
-            eq: jest.fn(() => Promise.resolve({ data: existingRsvps, error: null }))
-              .mockImplementation((field: string) => {
-                if (field === 'gameId') {
-                  return Promise.resolve({ data: existingRsvps, error: null })
-                }
-                return {
-                  eq: jest.fn(() => ({
-                    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-                  })),
-                }
-              }),
+            eq: jest.fn().mockImplementation((field: string) => {
+              if (field === 'gameId') {
+                return Promise.resolve({ data: existingRsvps, error: null })
+              }
+              return {
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({ data: null, error: null }),
+                })),
+              }
+            }),
             insert: jest.fn((data: any) => {
               capturedRsvp = data
               return Promise.resolve({ data: null, error: null })
@@ -338,17 +337,16 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
         if (table === 'rsvps') {
           return {
             select: jest.fn().mockReturnThis(),
-            eq: jest.fn(() => Promise.resolve({ data: existingRsvps, error: null }))
-              .mockImplementation((field: string) => {
-                if (field === 'gameId') {
-                  return Promise.resolve({ data: existingRsvps, error: null })
-                }
-                return {
-                  eq: jest.fn(() => ({
-                    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-                  })),
-                }
-              }),
+            eq: jest.fn().mockImplementation((field: string) => {
+              if (field === 'gameId') {
+                return Promise.resolve({ data: existingRsvps, error: null })
+              }
+              return {
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({ data: null, error: null }),
+                })),
+              }
+            }),
             insert: jest.fn((data: any) => {
               capturedRsvp = data
               return Promise.resolve({ data: null, error: null })
@@ -394,17 +392,16 @@ describe('P0.3: RSVP Seat Limit (Critical)', () => {
         if (table === 'rsvps') {
           return {
             select: jest.fn().mockReturnThis(),
-            eq: jest.fn(() => Promise.resolve({ data: existingRsvps, error: null }))
-              .mockImplementation((field: string) => {
-                if (field === 'gameId') {
-                  return Promise.resolve({ data: existingRsvps, error: null })
-                }
-                return {
-                  eq: jest.fn(() => ({
-                    single: jest.fn().mockResolvedValue({ data: null, error: null }),
-                  })),
-                }
-              }),
+            eq: jest.fn().mockImplementation((field: string) => {
+              if (field === 'gameId') {
+                return Promise.resolve({ data: existingRsvps, error: null })
+              }
+              return {
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({ data: null, error: null }),
+                })),
+              }
+            }),
             insert: jest.fn((data: any) => {
               capturedRsvp = data
               return Promise.resolve({ data: null, error: null })

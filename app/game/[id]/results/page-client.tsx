@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Game, GamePlayer, Player } from '@/types';
 import { formatCurrency, formatDate, formatTime, formatPlayerName } from '@/lib/utils';
 import { triggerConfetti } from '@/lib/confetti';
@@ -80,10 +81,13 @@ export default function ResultsClient({
               <Crown weight="fill" className="text-poker-gold text-7xl mx-auto mb-4 animate-gold-pulse" />
               <p className="text-poker-gold font-bold mb-3 uppercase tracking-wider text-sm">Biggest Winner</p>
               <div className="flex items-center justify-center gap-3 mb-4">
-                <img
+                <Image
                   src={`/avatars/${winnerPlayer.avatar}`}
                   alt={formatPlayerName(winnerPlayer)}
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-full border-3 border-poker-gold shadow-xl"
+                  unoptimized
                 />
                 <div className="text-left">
                   <h3 className="font-display text-2xl font-bold text-white">
@@ -109,10 +113,13 @@ export default function ResultsClient({
               <div className="text-7xl mx-auto mb-4">💸</div>
               <p className="text-red-400 font-bold mb-3 uppercase tracking-wider text-sm">Biggest Loser</p>
               <div className="flex items-center justify-center gap-3 mb-4">
-                <img
+                <Image
                   src={`/avatars/${loserPlayer.avatar}`}
                   alt={formatPlayerName(loserPlayer)}
+                  width={64}
+                  height={64}
                   className="w-16 h-16 rounded-full border-3 border-red-500 shadow-xl"
+                  unoptimized
                 />
                 <div className="text-left">
                   <h3 className="font-display text-2xl font-bold text-white">
@@ -161,12 +168,15 @@ export default function ResultsClient({
                     <span className="text-gray-500 font-bold text-xl">{index + 1}</span>
                   )}
                 </div>
-                <img
+                <Image
                   src={`/avatars/${player.avatar}`}
                   alt={formatPlayerName(player)}
+                  width={56}
+                  height={56}
                   className={`w-14 h-14 rounded-full border-2 shadow-lg flex-shrink-0 ${
                     index === 0 ? 'border-poker-gold' : 'border-white/20'
                   }`}
+                  unoptimized
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-display font-bold text-white text-lg truncate">

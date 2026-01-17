@@ -19,12 +19,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize theme from localStorage or default to system
   useEffect(() => {
-    setMounted(true);
+    if (!mounted) {
+      setMounted(true);
+    }
     const storedTheme = localStorage.getItem('theme') as Theme;
-    if (storedTheme) {
+    if (storedTheme && storedTheme !== theme) {
       setThemeState(storedTheme);
     }
-  }, []);
+  }, [mounted, theme]);
 
   // Update resolved theme based on theme setting and system preference
   useEffect(() => {

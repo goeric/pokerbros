@@ -38,7 +38,7 @@ export default function GameCancelled({
       </Text>
 
       <Text style={paragraph}>
-        We'll let you know when the next game is scheduled!
+        We&apos;ll let you know when the next game is scheduled!
       </Text>
     </EmailLayout>
   );

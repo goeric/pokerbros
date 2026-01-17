@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { User } from '@supabase/supabase-js';
 import { Game, RSVP, Player } from '@/types';
 import { formatDate, formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isToday } from '@/lib/utils';
@@ -35,10 +36,14 @@ export default function GameDetailClient({
   const [showPromotion, setShowPromotion] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const previousMessageRef = useRef<string | undefined>(undefined);
 
   // Show toast and auto-dismiss after 5 seconds
   useEffect(() => {
-    if (successMessage || errorMessage) {
+    const currentMessage = successMessage || errorMessage;
+    // Only update state if the message has changed to avoid cascading renders
+    if (currentMessage && currentMessage !== previousMessageRef.current) {
+      previousMessageRef.current = currentMessage;
       setShowToast(true);
       const timer = setTimeout(() => {
         setShowToast(false);
@@ -195,7 +200,7 @@ export default function GameDetailClient({
               <Trophy weight="fill" size={24} className="text-poker-gold" />
             </div>
             <p className="text-white font-display font-bold text-lg">
-              You've been promoted from the waitlist!
+              You&apos;ve been promoted from the waitlist!
             </p>
           </div>
         </div>
@@ -412,7 +417,7 @@ export default function GameDetailClient({
               <div className="p-4 bg-green-950/50 border-2 border-green-500 rounded-xl">
                 <p className="text-green-400 text-center font-bold flex items-center justify-center gap-2">
                   <Check weight="bold" size={20} />
-                  You're {hasRSVPd.status === 'confirmed' ? 'confirmed' : `#${hasRSVPd.waitlistPosition} on the waitlist`}
+                  You&apos;re {hasRSVPd.status === 'confirmed' ? 'confirmed' : `#${hasRSVPd.waitlistPosition} on the waitlist`}
                 </p>
               </div>
             )}
@@ -449,9 +454,11 @@ export default function GameDetailClient({
                             {index + 1}
                           </span>
                         </div>
-                        <img
+                        <Image
                           src={`/avatars/${player.avatar}`}
                           alt={formatPlayerName(player)}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full border-2 border-gray-600"
                         />
                         <span className="text-white font-display font-bold">
@@ -496,9 +503,11 @@ export default function GameDetailClient({
                             #{rsvp.waitlistPosition}
                           </span>
                         </div>
-                        <img
+                        <Image
                           src={`/avatars/${player.avatar}`}
                           alt={formatPlayerName(player)}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full border-2 border-amber-600"
                         />
                         <span className="text-white font-display font-bold">
