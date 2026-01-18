@@ -22,7 +22,7 @@ PokerBros is a web application for managing monthly home poker games with real-t
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start Supabase local instance (Docker required)
 supabase start
@@ -31,19 +31,19 @@ supabase start
 supabase stop
 
 # Run development server
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Run production build locally
-npm start
+pnpm start
 
 # Type checking
-npx tsc --noEmit
+pnpm tsc --noEmit
 
 # Linting
-npm run lint
+pnpm lint
 
 # Database migrations
 supabase migration new <migration_name>  # Create new migration file
@@ -54,18 +54,18 @@ supabase db push  # Apply pending migrations to local database (PREFERRED - pres
 # For incremental changes, ALWAYS use `supabase db push` to preserve existing data
 
 # Testing
-npm test                # Run all tests
-npm run test:watch      # Run tests in watch mode
-npm run test:p0         # Run P0 critical tests only
-npm run test:coverage   # Run tests with coverage report
+pnpm test                # Run all tests
+pnpm test:watch      # Run tests in watch mode
+pnpm test:p0         # Run P0 critical tests only
+pnpm test:coverage   # Run tests with coverage report
 ```
 
 **⚠️ PRE-PRODUCTION DEPLOYMENT REQUIREMENTS:**
 Before pushing to production, you MUST:
-1. Run `npm run test:p0` and ensure all P0 critical tests pass
-2. Run `npm test` and ensure all tests pass
-3. Run `npx tsc --noEmit` and ensure no TypeScript errors
-4. Run `npm run build` and ensure build succeeds
+1. Run `pnpm test:p0` and ensure all P0 critical tests pass
+2. Run `pnpm test` and ensure all tests pass
+3. Run `pnpm tsc --noEmit` and ensure no TypeScript errors
+4. Run `pnpm build` and ensure build succeeds
 
 **NEVER deploy to production with failing tests or TypeScript errors.**
 
