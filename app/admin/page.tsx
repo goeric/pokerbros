@@ -1,42 +1,14 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { Player } from '@/types';
 import AdminClient from './components/AdminClient';
 import { logger } from '@/lib/logger';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 // This is a Server Component - it runs on the server and fetches data before rendering
 export default async function AdminPage() {
   // Get auth state including role
   const { isAdmin, role } = await getServerAuth();
-
-  // Create Supabase server client
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore cookie errors in server components
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore cookie errors in server components
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch players on the server before rendering
   const { data: players, error } = await supabase

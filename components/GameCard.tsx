@@ -1,11 +1,7 @@
 'use client';
 
-import React from 'react';
-import Card from './Card';
-import Button from './Button';
-import Badge from './Badge';
 import { Game } from '@/types';
-import { formatDate, formatTime, formatCurrency } from '@/lib/utils';
+import { formatDate, formatTime, isGameLive } from '@/lib/utils';
 import { CalendarDots, Clock, CurrencyDollar, Users } from '@phosphor-icons/react';
 
 interface GameCardProps {
@@ -21,19 +17,8 @@ export default function GameCard({
   waitlistCount,
   compact = false
 }: GameCardProps) {
-  // Check if game should be live (either explicitly in_progress or past scheduled time)
-  const shouldBeLive = () => {
-    if (game.status === 'in_progress') return true;
-    if (game.status === 'completed') return false;
-
-    const gameDateTime = new Date(`${game.date}T${game.time}`);
-    const now = new Date();
-    return gameDateTime <= now;
-  };
-
-  const isInProgress = shouldBeLive();
+  const isInProgress = isGameLive(game);
   const isUpcoming = game.status === 'upcoming' && !isInProgress;
-  const isCompleted = game.status === 'completed';
 
   // Create arrays for the slot indicators
   const filledSlots = Array(Math.min(confirmedCount, 8)).fill(true);

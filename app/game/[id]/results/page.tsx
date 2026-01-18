@@ -1,8 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { Game, GamePlayer, Player } from '@/types';
 import ResultsClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>;
@@ -10,36 +9,10 @@ interface ResultsPageProps {
 
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const { id: gameId } = await params;
-  const cookieStore = await cookies();
 
   // Get admin status server-side
   const { isAdmin } = await getServerAuth();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all data in parallel
   const [gameRes, gamePlayersRes, playersRes] = await Promise.all([

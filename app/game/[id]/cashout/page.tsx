@@ -1,7 +1,6 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { Game, GamePlayer, Player } from '@/types';
 import CashOutClient from './page-client';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 interface CashOutPageProps {
   params: Promise<{ id: string }>;
@@ -9,33 +8,7 @@ interface CashOutPageProps {
 
 export default async function CashOutPage({ params }: CashOutPageProps) {
   const { id: gameId } = await params;
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all data in parallel
   const [gameRes, gamePlayersRes, playersRes] = await Promise.all([

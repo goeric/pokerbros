@@ -1,6 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { User } from '@supabase/supabase-js';
+import { createSupabaseServerClient } from './auth-helpers';
 
 export type UserRole = 'superadmin' | 'admin' | 'viewer';
 
@@ -20,33 +19,7 @@ export interface ServerAuthResult {
  * Returns: { user, isAdmin, isSuperAdmin }
  */
 export async function getServerAuth(): Promise<ServerAuthResult> {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore errors in Server Components (read-only cookies)
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore errors in Server Components (read-only cookies)
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Get current user (validates session with auth server)
   const {

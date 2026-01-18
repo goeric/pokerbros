@@ -70,18 +70,3 @@ export interface RSVP {
   timestamp: string;
   waitlistPosition?: number;
 }
-
-export interface QuickStats {
-  totalGamesHosted: number;
-  totalMoneyPlayed: number;
-  chipLeader: { player: Player; profit: number } | null;
-  nextGameDate: string | null;
-}
-
-export interface PlayerStats extends Player {
-  winRate: number;
-  avgBuyIn: number;
-  hotStreak: boolean;
-  coldStreak: boolean;
-  rank: number;
-}

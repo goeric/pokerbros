@@ -1,13 +1,12 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
 import { AuthProvider } from '@/lib/auth-context';
 import { ThemeProvider } from '@/lib/theme-provider';
 import TopNavigation from '@/components/TopNavigation';
 import UnauthorizedUser from '@/components/UnauthorizedUser';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -69,33 +68,7 @@ export default async function RootLayout({
   let playerAvatar = 'avatar1.svg';
   let playerName = '';
   if (auth.user) {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set({ name, value, ...options });
-            } catch (error) {
-              // Ignore
-            }
-          },
-          remove(name: string, options: any) {
-            try {
-              cookieStore.delete(name);
-            } catch (error) {
-              // Ignore
-            }
-          },
-        },
-      }
-    );
+    const supabase = await createSupabaseServerClient();
 
     const { data: playerData } = await supabase
       .from('players')

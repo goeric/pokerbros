@@ -1,36 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { Player } from '@/types';
 import StatsClient from './page-client';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 export default async function StatsPage() {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all players
   const { data: playersData } = await supabase

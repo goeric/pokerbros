@@ -1,13 +1,11 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 import { Player, Game, GamePlayer } from '@/types';
 import ProfileClient from './page-client';
 
 export default async function ProfilePage() {
-  const cookieStore = await cookies();
   const { user, isAdmin } = await getServerAuth();
 
   // Redirect if not logged in
@@ -15,31 +13,7 @@ export default async function ProfilePage() {
     redirect('/login');
   }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch player data by email
   const { data: playerData } = await supabase

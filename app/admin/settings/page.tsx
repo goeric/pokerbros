@@ -1,6 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 import SettingsClient from './page-client';
 
 interface Setting {
@@ -10,20 +9,8 @@ interface Setting {
 }
 
 export default async function SettingsPage() {
-  const cookieStore = await cookies();
   const { user, isAdmin } = await getServerAuth();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all settings
   const { data: settings } = await supabase

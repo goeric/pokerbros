@@ -1,9 +1,8 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { Game, RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
 import { logger } from '@/lib/logger';
 
 interface GamePageProps {
@@ -14,36 +13,10 @@ interface GamePageProps {
 export default async function GameDetailPage({ params, searchParams }: GamePageProps) {
   const { id: gameId } = await params;
   const urlParams = await searchParams;
-  const cookieStore = await cookies();
 
   // Get auth state server-side
   const { user, isAdmin } = await getServerAuth();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all data in parallel on the server
   const [gameRes, rsvpsRes, playersRes] = await Promise.all([

@@ -1,9 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import LiveGameClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
+import { createSupabaseServerClient } from '@/lib/auth-helpers';
+import { isGameLive } from '@/lib/utils';
 
 interface LiveGamePageProps {
   params: Promise<{ id: string }>;
@@ -11,36 +11,10 @@ interface LiveGamePageProps {
 
 export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const { id: gameId } = await params;
-  const cookieStore = await cookies();
 
   // Get admin status server-side
   const { isAdmin } = await getServerAuth();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createSupabaseServerClient();
 
   // Fetch game
   const { data: game } = await supabase
@@ -58,16 +32,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   }
 
   // Check if game should be accessible as live (either explicitly in_progress or past scheduled time)
-  const shouldBeLive = () => {
-    if (game.status === 'in_progress') return true;
-    if (game.status === 'completed') return false;
-
-    const gameDateTime = new Date(`${game.date}T${game.time}`);
-    const now = new Date();
-    return gameDateTime <= now;
-  };
-
-  if (!shouldBeLive()) {
+  if (!isGameLive(game)) {
     redirect(`/game/${gameId}`);
   }
 
