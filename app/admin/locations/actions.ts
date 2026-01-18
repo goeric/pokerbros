@@ -1,47 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { getServerAuth } from '@/lib/auth-server';
-
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Ignore errors in Server Actions
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.delete(name);
-          } catch (error) {
-            // Ignore errors in Server Actions
-          }
-        },
-      },
-    }
-  );
-}
+import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 
 export async function createLocation(formData: { name: string; address: string }) {
   try {
-    const { isAdmin } = await getServerAuth();
-    if (!isAdmin) {
-      return { error: 'Unauthorized: Admin access required' };
-    }
-
     const supabase = await createSupabaseServerClient();
+
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
     const { data, error } = await supabase
       .from('locations')
@@ -52,24 +19,23 @@ export async function createLocation(formData: { name: string; address: string }
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      return handleServerError(error, 'ERR_LOCATION_CREATE', 'Failed to create location. Please try again.');
+    }
 
     revalidatePath('/admin/locations');
     return { success: true, data };
-  } catch (error: any) {
-    console.error('Error creating location:', error);
-    return { error: error.message || 'Failed to create location' };
+  } catch (error) {
+    return handleServerError(error, 'ERR_LOCATION_CREATE_AUTH');
   }
 }
 
 export async function updateLocation(id: string, formData: { name: string; address: string }) {
   try {
-    const { isAdmin } = await getServerAuth();
-    if (!isAdmin) {
-      return { error: 'Unauthorized: Admin access required' };
-    }
-
     const supabase = await createSupabaseServerClient();
+
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
     const { data, error } = await supabase
       .from('locations')
@@ -82,24 +48,23 @@ export async function updateLocation(id: string, formData: { name: string; addre
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      return handleServerError(error, 'ERR_LOCATION_UPDATE', 'Failed to update location. Please try again.');
+    }
 
     revalidatePath('/admin/locations');
     return { success: true, data };
-  } catch (error: any) {
-    console.error('Error updating location:', error);
-    return { error: error.message || 'Failed to update location' };
+  } catch (error) {
+    return handleServerError(error, 'ERR_LOCATION_UPDATE_AUTH');
   }
 }
 
 export async function deleteLocation(id: string) {
   try {
-    const { isAdmin } = await getServerAuth();
-    if (!isAdmin) {
-      return { error: 'Unauthorized: Admin access required' };
-    }
-
     const supabase = await createSupabaseServerClient();
+
+    // ✅ Authorization check
+    await requireAdmin(supabase);
 
     // Check if location is used by any games
     const { data: games, error: gamesError } = await supabase
@@ -108,7 +73,9 @@ export async function deleteLocation(id: string) {
       .eq('location_id', id)
       .limit(1);
 
-    if (gamesError) throw gamesError;
+    if (gamesError) {
+      return handleServerError(gamesError, 'ERR_LOCATION_DELETE_CHECK', 'Failed to check location usage.');
+    }
 
     if (games && games.length > 0) {
       return { error: 'Cannot delete location: it is used by one or more games' };
@@ -116,12 +83,13 @@ export async function deleteLocation(id: string) {
 
     const { error } = await supabase.from('locations').delete().eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      return handleServerError(error, 'ERR_LOCATION_DELETE', 'Failed to delete location. Please try again.');
+    }
 
     revalidatePath('/admin/locations');
     return { success: true };
-  } catch (error: any) {
-    console.error('Error deleting location:', error);
-    return { error: error.message || 'Failed to delete location' };
+  } catch (error) {
+    return handleServerError(error, 'ERR_LOCATION_DELETE_AUTH');
   }
 }
