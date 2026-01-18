@@ -20,6 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize theme from localStorage or default to system
   useEffect(() => {
     if (!mounted) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydration tracking
       setMounted(true);
     }
     const storedTheme = localStorage.getItem('theme') as Theme;

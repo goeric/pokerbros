@@ -35,7 +35,7 @@ export default function RsvpConfirmation({
       <Text style={paragraph}>Hi {playerName},</Text>
 
       <Text style={paragraph}>
-        Your spot is confirmed for poker night! We've added this event to your
+        Your spot is confirmed for poker night! We&apos;ve added this event to your
         calendar.
       </Text>
 

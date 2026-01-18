@@ -44,6 +44,7 @@ export default function GameDetailClient({
     const currentMessage = successMessage || errorMessage;
     if (currentMessage && currentMessage !== previousMessageRef.current) {
       previousMessageRef.current = currentMessage;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing toast visibility with URL params
       setShowToast(true);
       const timer = setTimeout(() => {
         setShowToast(false);
