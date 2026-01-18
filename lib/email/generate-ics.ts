@@ -1,12 +1,40 @@
 import { createEvent, EventAttributes } from 'ics';
 import { Game, Location } from '@/types';
 
+// Default timezone for all poker games (IANA timezone identifier)
+const DEFAULT_TIMEZONE = 'America/Los_Angeles';
+
 interface GenerateIcsOptions {
   game: Game;
   location: Location;
   playerEmail: string;
   status: 'CONFIRMED' | 'CANCELLED';
   sequence?: number;
+  timezone?: string;
+}
+
+/**
+ * Post-process ICS content to add timezone information
+ * The ics library doesn't support TZID directly, so we inject it
+ */
+function addTimezoneToIcs(icsContent: string, timezone: string): string {
+  // Replace DTSTART and DTEND with timezone-aware versions
+  // Example: DTSTART:20240115T190000 -> DTSTART;TZID=America/Los_Angeles:20240115T190000
+  let result = icsContent;
+
+  // Add TZID to DTSTART (but not if it already has one or is UTC)
+  result = result.replace(
+    /DTSTART:(\d{8}T\d{6})/g,
+    `DTSTART;TZID=${timezone}:$1`
+  );
+
+  // Add TZID to DTEND (but not if it already has one or is UTC)
+  result = result.replace(
+    /DTEND:(\d{8}T\d{6})/g,
+    `DTEND;TZID=${timezone}:$1`
+  );
+
+  return result;
 }
 
 /**
@@ -24,34 +52,21 @@ export function generateGameIcs({
   playerEmail,
   status,
   sequence = 0,
+  timezone = DEFAULT_TIMEZONE,
 }: GenerateIcsOptions): string | null {
   try {
     // Parse game date and time
     const [year, month, day] = game.date.split('-').map(Number);
     const [hours, minutes] = game.time.split(':').map(Number);
 
-    // Create start date/time (local time)
-    const startDate = new Date(year, month - 1, day, hours, minutes);
-
-    // End time: 4 hours after start
-    const endDate = new Date(startDate);
-    endDate.setHours(endDate.getHours() + 4);
-
     // Format dates for ics library: [year, month, day, hour, minute]
-    const start: [number, number, number, number, number] = [
-      startDate.getFullYear(),
-      startDate.getMonth() + 1, // ics library uses 1-indexed months
-      startDate.getDate(),
-      startDate.getHours(),
-      startDate.getMinutes(),
-    ];
-
+    const start: [number, number, number, number, number] = [year, month, day, hours, minutes];
     const end: [number, number, number, number, number] = [
-      endDate.getFullYear(),
-      endDate.getMonth() + 1,
-      endDate.getDate(),
-      endDate.getHours(),
-      endDate.getMinutes(),
+      year,
+      month,
+      day,
+      hours + 4, // 4-hour duration
+      minutes,
     ];
 
     // Build description with game details
@@ -66,6 +81,10 @@ export function generateGameIcs({
     const event: EventAttributes = {
       start,
       end,
+      startInputType: 'local',
+      startOutputType: 'local',
+      endInputType: 'local',
+      endOutputType: 'local',
       title: `Poker Night at ${location.name}`,
       description,
       location: location.address,
@@ -95,7 +114,11 @@ export function generateGameIcs({
       return null;
     }
 
-    return value || null;
+    if (!value) return null;
+
+    // Post-process to add timezone (ics library doesn't support TZID directly)
+    const icsWithTimezone = addTimezoneToIcs(value, timezone);
+    return icsWithTimezone;
   } catch (error) {
     console.error('[ICS] Error generating calendar event:', error);
     return null;
