@@ -34,7 +34,7 @@ export default function GameDetailClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedPlayerId, setSelectedPlayerId] = useState('');
-  const [showPromotion, setShowPromotion] = useState(false);
+  const [showPromotion, _setShowPromotion] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const previousMessageRef = useRef<string | undefined>(undefined);

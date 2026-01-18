@@ -6,7 +6,7 @@ import { Player, Game, GamePlayer } from '@/types';
 import ProfileClient from './page-client';
 
 export default async function ProfilePage() {
-  const { user, isAdmin } = await getServerAuth();
+  const { user, isAdmin: _isAdmin } = await getServerAuth();
 
   // Redirect if not logged in
   if (!user) {
@@ -62,7 +62,7 @@ export default async function ProfilePage() {
     .eq('playerId', player.id)
     .order('games(date)', { ascending: false });
 
-  const gameHistory = (gamePlayersData || []).map((gp: any) => ({
+  const gameHistory = (gamePlayersData || []).map((gp: GamePlayer & { games: Game }) => ({
     gamePlayer: gp as GamePlayer,
     game: gp.games as Game,
   }));

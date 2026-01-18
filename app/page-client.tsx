@@ -240,7 +240,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
             </div>
             <div className="space-y-4">
               {upcomingGamesList.slice(liveGames.length > 0 ? 0 : 1, 4).map(game => {
-                const { confirmed, waitlist } = getRsvpCounts(game.id);
+                const { confirmed, waitlist: _waitlist } = getRsvpCounts(game.id);
                 const dateWithDay = formatDateWithDay(game.date); // e.g., "Fri, Jan 16"
                 const [dayOfWeek, monthDay] = dateWithDay.split(','); // ["Fri", " Jan 16"]
 

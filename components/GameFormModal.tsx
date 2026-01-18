@@ -117,7 +117,7 @@ export default function GameFormModal({
             onClick={(e) => {
               try {
                 e.currentTarget.showPicker();
-              } catch (error) {
+              } catch {
                 // showPicker() not supported in all browsers, fallback to default behavior
               }
             }}

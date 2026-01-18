@@ -195,7 +195,7 @@ export async function sendEmail({
           console.log(`[EMAIL] Successfully sent to ${recipient}`);
           successfulRecipients.push(recipient);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error(`[EMAIL] Unexpected error sending to ${recipient}:`, error);
         failedRecipients.push(recipient);
       }
@@ -220,9 +220,9 @@ export async function sendEmail({
         ? `Failed to send to ${failedRecipients.length} recipient(s)`
         : undefined,
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[EMAIL] Unexpected error sending email:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
@@ -288,8 +288,8 @@ export async function sendToAllPlayers({
       subject,
       react,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[EMAIL] Error sending to all players:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

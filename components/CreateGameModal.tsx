@@ -12,7 +12,7 @@ interface CreateGameModalProps {
 
 export default function CreateGameModal({ isOpen, onClose }: CreateGameModalProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [_isPending, startTransition] = useTransition();
 
   const handleSubmit = async (formData: { date: string; time: string; buyIn: number; location_id: string; notes: string }) => {
     startTransition(async () => {

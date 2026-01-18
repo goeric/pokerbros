@@ -16,8 +16,8 @@ interface AdminClientProps {
   userRole: UserRole | null;
 }
 
-export default function AdminClient({ initialPlayers, canEdit, userRole }: AdminClientProps) {
-  const router = useRouter();
+export default function AdminClient({ initialPlayers, canEdit, userRole: _userRole }: AdminClientProps) {
+  const _router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isPending, startTransition] = useTransition();

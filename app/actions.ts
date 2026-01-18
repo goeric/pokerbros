@@ -7,7 +7,6 @@ import { sendEmail } from '@/lib/email/send-email';
 import { createEmailActionToken } from '@/lib/email/action-tokens';
 import GameCreated from '@/emails/templates/GameCreated';
 import { formatDate, formatTime } from '@/lib/utils';
-import { Player } from '@/types';
 
 export async function createGame(gameData: {
   date: string;

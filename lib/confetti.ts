@@ -30,7 +30,12 @@ export function triggerConfetti() {
   }, 250);
 }
 
-function createConfetti(options: any) {
+interface ConfettiOptions {
+  particleCount: number;
+  origin: { x: number; y: number };
+}
+
+function createConfetti(options: ConfettiOptions) {
   // Simple DOM-based confetti
   const { particleCount, origin } = options;
 
@@ -51,7 +56,7 @@ function createConfetti(options: any) {
     const angle = Math.random() * Math.PI * 2;
     const velocity = 5 + Math.random() * 10;
     const gravity = 0.3;
-    let vx = Math.cos(angle) * velocity;
+    const vx = Math.cos(angle) * velocity;
     let vy = Math.sin(angle) * velocity - 10;
     let x = parseFloat(confetti.style.left);
     let y = parseFloat(confetti.style.top);

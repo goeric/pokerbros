@@ -1,4 +1,3 @@
-import { Player } from '@/types';
 import AdminClient from './components/AdminClient';
 import { logger } from '@/lib/logger';
 import { getServerAuth } from '@/lib/auth-server';

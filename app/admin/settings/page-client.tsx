@@ -19,7 +19,7 @@ interface SettingsClientProps {
   isAdmin: boolean;
 }
 
-export default function SettingsClient({ settings, user, isAdmin }: SettingsClientProps) {
+export default function SettingsClient({ settings, user: _user, isAdmin: _isAdmin }: SettingsClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [togglingKey, setTogglingKey] = useState<string | null>(null);

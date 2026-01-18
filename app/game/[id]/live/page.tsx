@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Game, GamePlayer, Player } from '@/types';
+import { GamePlayer, Player } from '@/types';
 import LiveGameClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
 import { createSupabaseServerClient } from '@/lib/auth-helpers';

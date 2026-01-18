@@ -158,7 +158,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
             update: jest.fn((data: any) => {
-              let currentGamePlayerId: string | null = null
+              const currentGamePlayerId: string | null = null
               if (data.profit !== undefined) {
                 return {
                   eq: jest.fn((field: string, value: any) => {

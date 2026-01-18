@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Game, RSVP, Player } from '@/types';
+import { RSVP, Player } from '@/types';
 import GameDetailClient from './page-client';
 import { getServerAuth } from '@/lib/auth-server';
 import { createSupabaseServerClient } from '@/lib/auth-helpers';

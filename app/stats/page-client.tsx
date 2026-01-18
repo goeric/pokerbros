@@ -28,7 +28,7 @@ export default function StatsClient({ players }: StatsClientProps) {
 
   // Calculate stats for each player
   const playerStats: PlayerStats[] = players.map(p => {
-    const profit = p.totalOut - p.totalIn;
+    const _profit = p.totalOut - p.totalIn;
     const winRate = p.gamesPlayed > 0 ? (p.totalOut > p.totalIn ? 100 : 0) : 0;
     const avgBuyIn = p.gamesPlayed > 0 ? p.totalIn / p.gamesPlayed : 0;
 
