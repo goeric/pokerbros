@@ -50,9 +50,8 @@ export default function StatsClient({ players }: StatsClientProps) {
   });
 
   const filteredStats = sortedStats.filter(stat => {
-    if (filter === 'all') return true;
-    if (filter === 'recent5') return stat.gamesPlayed > 0;
-    if (filter === 'month') return stat.gamesPlayed > 0;
+    // Always exclude players who have never played
+    if (stat.gamesPlayed === 0) return false;
     return true;
   });
 
@@ -251,7 +250,7 @@ export default function StatsClient({ players }: StatsClientProps) {
                 <tr className="text-gray-400 text-xs uppercase tracking-wider border-b border-white/5 bg-black/20">
                   <th className="p-4 font-medium">Rank</th>
                   <th className="p-4 font-medium">Grinder</th>
-                  <th className="p-4 font-medium text-center">Hands</th>
+                  <th className="p-4 font-medium text-center">Games</th>
                   <th className="p-4 font-medium text-right">Net</th>
                   <th className="p-4 font-medium text-center hidden md:table-cell">Win %</th>
                   <th className="p-4 font-medium text-right hidden md:table-cell">Best Pot</th>
