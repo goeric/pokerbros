@@ -1,7 +1,7 @@
 import { Player, Game } from '@/types';
 
 export function formatCurrency(amount: number): string {
-  return `$${amount.toFixed(0)}`;
+  return `$${amount.toFixed(2)}`;
 }
 
 export function formatDate(dateString: string): string {
