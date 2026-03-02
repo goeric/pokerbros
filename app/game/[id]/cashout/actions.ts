@@ -20,6 +20,21 @@ export async function finalizeGameResults(gameId: string, cashOuts: Record<strin
 
     const validCashOuts = result.data;
 
+    // Guard against double finalization (additive stats would be corrupted)
+    const { data: currentGame, error: statusError } = await supabase
+      .from('games')
+      .select('status')
+      .eq('id', gameId)
+      .single();
+
+    if (statusError || !currentGame) {
+      return handleServerError(statusError || new Error('Game not found'), 'ERR_CASHOUT_STATUS_CHECK', 'Unable to verify game status. Please try again.');
+    }
+
+    if (currentGame.status === 'completed') {
+      return { error: 'Game has already been finalized.' };
+    }
+
     // Fetch game_players
     const { data: gamePlayers } = await supabase.from('game_players').select('*').eq('gameId', gameId);
 

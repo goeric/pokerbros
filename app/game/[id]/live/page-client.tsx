@@ -27,6 +27,10 @@ export default function LiveGameClient({
   const [coinAnimation, setCoinAnimation] = useState<string | null>(null);
   const [cashOutMode, setCashOutMode] = useState<string | null>(null);
   const [cashOutInputValue, setCashOutInputValue] = useState('');
+  const [cashedOutPlayerIds, setCashedOutPlayerIds] = useState<Set<string>>(() => {
+    // Initialize from server data — any player with cashOut > 0 was already cashed out
+    return new Set(initialGamePlayers.filter(gp => gp.cashOut > 0).map(gp => gp.id));
+  });
 
   const gamePlayers = initialGamePlayers;
 
@@ -35,7 +39,10 @@ export default function LiveGameClient({
     setTimeout(() => setCoinAnimation(null), 600);
 
     startTransition(async () => {
-      await addRebuy(game.id, gamePlayerId, game.buyIn);
+      const result = await addRebuy(game.id, gamePlayerId, game.buyIn);
+      if ('error' in result) {
+        alert(result.error);
+      }
     });
   };
 
@@ -50,14 +57,10 @@ export default function LiveGameClient({
     }
   };
 
-  const handleCashOut = async (gamePlayerId: string, totalBuyIn: number) => {
+  const handleCashOut = async (gamePlayerId: string) => {
     const amount = parseFloat(cashOutInputValue);
     if (isNaN(amount) || amount < 0) {
       alert('Please enter a valid amount');
-      return;
-    }
-    if (amount > totalBuyIn) {
-      alert(`Cash-out cannot exceed total buy-in (${formatCurrency(totalBuyIn)})`);
       return;
     }
     startTransition(async () => {
@@ -65,6 +68,7 @@ export default function LiveGameClient({
       if ('error' in result) {
         alert(result.error);
       } else {
+        setCashedOutPlayerIds(prev => new Set(prev).add(gamePlayerId));
         setCashOutMode(null);
         setCashOutInputValue('');
       }
@@ -163,7 +167,7 @@ export default function LiveGameClient({
           const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
           const rebuyCount = gamePlayer.buyIns.length - 1;
 
-          const isCashedOut = gamePlayer.cashOut > 0;
+          const isCashedOut = cashedOutPlayerIds.has(gamePlayer.id) || gamePlayer.cashOut > 0;
 
           return (
             <div key={gamePlayer.id} className={`glass-panel rounded-2xl p-6 border relative overflow-hidden transition-all group ${isCashedOut ? 'border-green-500/30 opacity-60' : 'border-white/10 hover:border-poker-gold/30'}`}>
@@ -240,7 +244,6 @@ export default function LiveGameClient({
                         <input
                           type="number"
                           min="0"
-                          max={totalBuyIn}
                           step="0.01"
                           value={cashOutInputValue}
                           onChange={(e) => setCashOutInputValue(e.target.value)}
@@ -250,7 +253,7 @@ export default function LiveGameClient({
                         />
                       </div>
                       <button
-                        onClick={() => handleCashOut(gamePlayer.id, totalBuyIn)}
+                        onClick={() => handleCashOut(gamePlayer.id)}
                         disabled={isPending}
                         className="px-3 py-2.5 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-bold rounded-lg transition-all border border-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >

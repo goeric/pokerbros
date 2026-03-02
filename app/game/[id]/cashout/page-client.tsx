@@ -26,20 +26,20 @@ export default function CashOutClient({
   const initialInputValues: Record<string, string> = {};
   gamePlayers.forEach(gp => {
     initialCashOuts[gp.playerId] = gp.cashOut || 0;
-    initialInputValues[gp.playerId] = String(gp.cashOut || 0);
+    initialInputValues[gp.playerId] = (gp.cashOut || 0).toFixed(2);
   });
   const [cashOuts, setCashOuts] = useState<Record<string, number>>(initialCashOuts);
   const [inputValues, setInputValues] = useState<Record<string, string>>(initialInputValues);
 
   const updateCashOut = (playerId: string, amount: number) => {
-    const validAmount = Math.max(0, amount);
+    const validAmount = Math.round(Math.max(0, amount) * 100) / 100;
     setCashOuts(prev => ({
       ...prev,
       [playerId]: validAmount,
     }));
     setInputValues(prev => ({
       ...prev,
-      [playerId]: String(validAmount),
+      [playerId]: validAmount.toFixed(2),
     }));
   };
 
@@ -55,17 +55,17 @@ export default function CashOutClient({
     if (!isNaN(numericValue)) {
       setCashOuts(prev => ({
         ...prev,
-        [playerId]: Math.max(0, numericValue),
+        [playerId]: Math.round(Math.max(0, numericValue) * 100) / 100,
       }));
     }
   };
 
   const handleInputBlur = (playerId: string) => {
-    // On blur, normalize the display value
+    // On blur, normalize the display to two decimal places
     const currentValue = cashOuts[playerId] || 0;
     setInputValues(prev => ({
       ...prev,
-      [playerId]: String(currentValue),
+      [playerId]: currentValue.toFixed(2),
     }));
   };
 
@@ -205,7 +205,7 @@ export default function CashOutClient({
                     onChange={(e) => handleInputChange(gamePlayer.playerId, e.target.value)}
                     onBlur={() => handleInputBlur(gamePlayer.playerId)}
                     min="0"
-                    step="1"
+                    step="0.01"
                     disabled={isPending}
                     className="w-full pl-12 pr-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-lg text-white text-center font-display font-bold text-2xl focus:ring-2 focus:ring-poker-gold/20 focus:outline-none disabled:opacity-50 transition-all"
                   />

@@ -79,6 +79,11 @@ describe('P1.2: Game Status Transitions (Important)', () => {
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'games') {
           return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: { status: 'in_progress' }, error: null }),
+              }),
+            }),
             update: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ error: null }),
           }
@@ -152,6 +157,11 @@ describe('P1.2: Game Status Transitions (Important)', () => {
         }
         if (table === 'games') {
           return {
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                single: jest.fn().mockResolvedValue({ data: { status: 'in_progress' }, error: null }),
+              }),
+            }),
             update: jest.fn().mockReturnThis(),
             eq: jest.fn().mockResolvedValue({ error: null }),
           }

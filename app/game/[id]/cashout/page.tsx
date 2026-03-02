@@ -1,6 +1,8 @@
+import { redirect } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import CashOutClient from './page-client';
 import { createSupabaseServerClient } from '@/lib/auth-helpers';
+import { getServerAuth } from '@/lib/auth-server';
 
 interface CashOutPageProps {
   params: Promise<{ id: string }>;
@@ -8,6 +10,12 @@ interface CashOutPageProps {
 
 export default async function CashOutPage({ params }: CashOutPageProps) {
   const { id: gameId } = await params;
+
+  const { isAdmin } = await getServerAuth();
+  if (!isAdmin) {
+    redirect('/');
+  }
+
   const supabase = await createSupabaseServerClient();
 
   // Fetch all data in parallel
@@ -21,12 +29,8 @@ export default async function CashOutPage({ params }: CashOutPageProps) {
   const gamePlayers: GamePlayer[] = gamePlayersRes.data || [];
   const players: Player[] = playersRes.data || [];
 
-  if (!game) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-400">Game not found</p>
-      </div>
-    );
+  if (!game || game.status === 'completed' || game.status === 'upcoming') {
+    redirect(`/game/${gameId}`);
   }
 
   return (

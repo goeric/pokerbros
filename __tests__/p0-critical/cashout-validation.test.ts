@@ -39,6 +39,17 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
   const GAME_PLAYER_1_ID = '223e4567-e89b-12d3-a456-426614174001'
   const GAME_PLAYER_2_ID = '223e4567-e89b-12d3-a456-426614174002'
 
+  // Helper: mock for games table that handles both status check (select) and status update
+  const createGamesMock = (overrideUpdate?: jest.Mock) => ({
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({
+        single: jest.fn().mockResolvedValue({ data: { status: 'in_progress' }, error: null }),
+      }),
+    }),
+    update: overrideUpdate ?? jest.fn().mockReturnThis(),
+    eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
 
@@ -72,6 +83,9 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
       ]
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'games') {
+          return createGamesMock()
+        }
         if (table === 'game_players') {
           return {
             select: jest.fn().mockReturnThis(),
@@ -124,10 +138,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -183,10 +194,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -243,10 +251,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -303,10 +308,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -363,10 +365,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -424,10 +423,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -483,10 +479,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -542,10 +535,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -590,10 +580,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -648,10 +635,7 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
+          return createGamesMock()
         }
         return { select: jest.fn() }
       })
@@ -695,16 +679,14 @@ describe('P0.1: Cash-out Validation (Critical)', () => {
           }
         }
         if (table === 'games') {
-          return {
-            update: jest.fn((data: any) => {
-              if (data.status === 'completed') {
-                gameUpdateCalled = true
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
+          return createGamesMock(jest.fn((data: any) => {
+            if (data.status === 'completed') {
+              gameUpdateCalled = true
+            }
+            return {
+              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+            }
+          }))
         }
         return { select: jest.fn() }
       })

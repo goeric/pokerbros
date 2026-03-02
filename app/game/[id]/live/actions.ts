@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { RebuySchema, EarlyCashOutSchema, formatZodError } from '@/lib/validation';
-import { calculateTotalBuyIn } from '@/lib/utils';
 
 export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount: number) {
   try {
@@ -94,20 +93,35 @@ export async function cashOutEarly(gameId: string, gamePlayerId: string, cashOut
       return formatZodError(result.error);
     }
 
-    // Fetch current buy-ins to validate cash-out doesn't exceed total buy-in
-    const { data: gamePlayer } = await supabase
+    // Verify game is in progress
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select('status')
+      .eq('id', gameId)
+      .single();
+
+    if (gameError || !game) {
+      return handleServerError(gameError || new Error('Game not found'), 'ERR_CASHOUT_GAME_FETCH', 'Game not found.');
+    }
+
+    if (game.status !== 'in_progress') {
+      return { error: 'Cash-out is only allowed during an active game.' };
+    }
+
+    // Fetch game player (filtered by both id and gameId to prevent cross-game mutations)
+    const { data: gamePlayer, error: fetchError } = await supabase
       .from('game_players')
       .select('buyIns')
       .eq('id', gamePlayerId)
+      .eq('gameId', gameId)
       .single();
+
+    if (fetchError) {
+      return handleServerError(fetchError, 'ERR_CASHOUT_FETCH_PLAYER', 'Failed to load player data. Please try again.');
+    }
 
     if (!gamePlayer) {
       return handleServerError(new Error('Game player not found'), 'ERR_CASHOUT_NO_PLAYER', 'Game player not found');
-    }
-
-    const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
-    if (cashOutAmount > totalBuyIn) {
-      return { error: `Cash-out cannot exceed total buy-in (${totalBuyIn})` };
     }
 
     const { error } = await supabase
