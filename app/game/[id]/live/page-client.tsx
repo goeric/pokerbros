@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import { formatCurrency, formatPlayerName, calculateTotalBuyIn, calculateTotalPot, calculateTotalRebuys } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
-import { addRebuy, removeLastRebuy } from './actions';
-import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy } from '@phosphor-icons/react';
+import { addRebuy, removeLastRebuy, cashOutEarly } from './actions';
+import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy, Check, X } from '@phosphor-icons/react';
 
 interface LiveGameClientProps {
   game: Game;
@@ -25,6 +25,8 @@ export default function LiveGameClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [coinAnimation, setCoinAnimation] = useState<string | null>(null);
+  const [cashOutMode, setCashOutMode] = useState<string | null>(null);
+  const [cashOutInputValue, setCashOutInputValue] = useState('');
 
   const gamePlayers = initialGamePlayers;
 
@@ -48,6 +50,27 @@ export default function LiveGameClient({
     }
   };
 
+  const handleCashOut = async (gamePlayerId: string, totalBuyIn: number) => {
+    const amount = parseFloat(cashOutInputValue);
+    if (isNaN(amount) || amount < 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    if (amount > totalBuyIn) {
+      alert(`Cash-out cannot exceed total buy-in (${formatCurrency(totalBuyIn)})`);
+      return;
+    }
+    startTransition(async () => {
+      const result = await cashOutEarly(game.id, gamePlayerId, amount);
+      if ('error' in result) {
+        alert(result.error);
+      } else {
+        setCashOutMode(null);
+        setCashOutInputValue('');
+      }
+    });
+  };
+
   const handleEndGame = () => {
     if (confirm('End the game and proceed to cash-out recording?')) {
       router.push(`/game/${game.id}/cashout`);
@@ -56,6 +79,8 @@ export default function LiveGameClient({
 
   // Calculate total pot from game_players
   const totalPot = calculateTotalPot(gamePlayers);
+  const earlyCashOuts = gamePlayers.reduce((sum, gp) => sum + gp.cashOut, 0);
+  const activePot = totalPot - earlyCashOuts;
 
   // Find player with most rebuys (only if they have rebuys, not just initial buy-in)
   const playersWithRebuys = gamePlayers.filter(gp => gp.buyIns.length > 1);
@@ -83,9 +108,14 @@ export default function LiveGameClient({
         <div className="flex items-center justify-center gap-4">
           <CurrencyDollar weight="fill" className="text-poker-gold text-6xl animate-gold-pulse" />
           <p className="font-display text-7xl md:text-8xl font-bold text-poker-gold drop-shadow-[0_0_20px_rgba(212,175,55,0.5)]">
-            {formatCurrency(totalPot)}
+            {formatCurrency(activePot)}
           </p>
         </div>
+        {earlyCashOuts > 0 && (
+          <p className="text-gray-400 text-sm mt-3">
+            {formatCurrency(earlyCashOuts)} cashed out
+          </p>
+        )}
       </div>
 
       {/* Game Stats Bar */}
@@ -133,8 +163,10 @@ export default function LiveGameClient({
           const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
           const rebuyCount = gamePlayer.buyIns.length - 1;
 
+          const isCashedOut = gamePlayer.cashOut > 0;
+
           return (
-            <div key={gamePlayer.id} className="glass-panel rounded-2xl p-6 border border-white/10 relative overflow-hidden hover:border-poker-gold/30 transition-all group">
+            <div key={gamePlayer.id} className={`glass-panel rounded-2xl p-6 border relative overflow-hidden transition-all group ${isCashedOut ? 'border-green-500/30 opacity-60' : 'border-white/10 hover:border-poker-gold/30'}`}>
               {/* Coin Animation */}
               {coinAnimation === gamePlayer.id && (
                 <div className="absolute top-4 right-4 animate-coin-drop z-10">
@@ -164,6 +196,12 @@ export default function LiveGameClient({
                         {rebuyCount} rebuy{rebuyCount !== 1 ? 's' : ''}
                       </span>
                     )}
+                    {isCashedOut && (
+                      <span className="px-2 py-0.5 bg-green-950/50 border border-green-500/50 text-green-400 text-xs font-bold rounded flex items-center gap-1">
+                        <Check weight="bold" size={12} />
+                        Cashed Out: {formatCurrency(gamePlayer.cashOut)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -173,7 +211,7 @@ export default function LiveGameClient({
                 </div>
               </div>
 
-              {isAdmin && (
+              {isAdmin && !isCashedOut && (
                 <div className="space-y-2">
                   <button
                     onClick={() => handleAddRebuy(gamePlayer.id)}
@@ -191,6 +229,48 @@ export default function LiveGameClient({
                     >
                       <Minus weight="bold" size={16} />
                       Remove Last Rebuy
+                    </button>
+                  )}
+
+                  {/* Cash Out Button / Input */}
+                  {cashOutMode === gamePlayer.id ? (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max={totalBuyIn}
+                          step="0.01"
+                          value={cashOutInputValue}
+                          onChange={(e) => setCashOutInputValue(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full pl-7 pr-3 py-2.5 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-lg text-white focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all text-sm"
+                          autoFocus
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleCashOut(gamePlayer.id, totalBuyIn)}
+                        disabled={isPending}
+                        className="px-3 py-2.5 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-bold rounded-lg transition-all border border-yellow-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Check weight="bold" size={18} />
+                      </button>
+                      <button
+                        onClick={() => { setCashOutMode(null); setCashOutInputValue(''); }}
+                        className="px-3 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 rounded-lg transition-all"
+                      >
+                        <X weight="bold" size={18} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setCashOutMode(gamePlayer.id); setCashOutInputValue(''); }}
+                      disabled={isPending}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white font-bold rounded-lg transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <SignOut weight="bold" size={16} />
+                      Cash Out Early
                     </button>
                   )}
                 </div>

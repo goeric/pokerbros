@@ -97,6 +97,15 @@ export const CashOutSchema = z.record(
 );
 
 /**
+ * Validation schema for early cash-out during a live game
+ */
+export const EarlyCashOutSchema = z.object({
+  gameId: z.string().uuid(),
+  gamePlayerId: z.string().uuid(),
+  cashOutAmount: z.number().min(0).max(100000).multipleOf(0.01),
+});
+
+/**
  * Helper function to format Zod errors into user-friendly messages
  */
 export function formatZodError(error: z.ZodError): {
