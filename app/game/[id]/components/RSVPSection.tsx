@@ -3,6 +3,7 @@
 import { User } from '@supabase/supabase-js';
 import { Game, RSVP, Player } from '@/types';
 import { formatPlayerName } from '@/lib/utils';
+import { MAX_SEATS } from '@/lib/constants';
 import { Users, Check, X } from '@phosphor-icons/react';
 import PlayerList from './PlayerList';
 
@@ -76,7 +77,7 @@ export default function RSVPSection({
         <div className="mb-6">
           <div className="flex items-center justify-between text-sm mb-3">
             <span className="text-gray-400 font-medium">
-              {confirmedRSVPs.length}/8 Seats Filled
+              {confirmedRSVPs.length}/{MAX_SEATS} Seats Filled
             </span>
             {waitlistRSVPs.length > 0 && (
               <span className="text-amber-400 font-medium">
@@ -86,7 +87,7 @@ export default function RSVPSection({
           </div>
           {/* Seat Indicator */}
           <div className="flex gap-2">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(MAX_SEATS)].map((_, i) => (
               <div
                 key={i}
                 className={`h-3 flex-1 rounded-full transition-all ${

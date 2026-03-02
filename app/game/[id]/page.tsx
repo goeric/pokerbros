@@ -36,10 +36,7 @@ export default async function GameDetailPage({ params, searchParams }: GamePageP
 
   const game = gameRes.data;
   const rsvps: RSVP[] = rsvpsRes.data || [];
-  const players: Player[] = (playersRes.data || []).map(p => ({
-    ...p,
-    name: `${p.first_name} ${p.last_name}${p.nickname ? ` '${p.nickname}'` : ''}`
-  }));
+  const players: Player[] = playersRes.data || [];
 
   if (!game) {
     logger.warn('[Game Page] Game not found (may have been deleted)', { gameId });

@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency, formatPlayerName } from '@/lib/utils';
+import { formatCurrency, formatPlayerName, calculateTotalBuyIn } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import { finalizeGameResults } from './actions';
 import { CurrencyDollar, Minus, Plus, CheckCircle, XCircle, Trophy } from '@phosphor-icons/react';
@@ -73,7 +73,7 @@ export default function CashOutClient({
     const gamePlayer = gamePlayers.find(gp => gp.playerId === playerId);
     if (!gamePlayer) return;
 
-    const totalBuyIn = gamePlayer.buyIns.reduce((sum, amount) => sum + amount, 0);
+    const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
 
     if (type === 'busted') {
       updateCashOut(playerId, 0);
@@ -96,9 +96,7 @@ export default function CashOutClient({
   };
 
   // Calculate validation
-  const totalIn = gamePlayers.reduce((sum, gp) =>
-    sum + gp.buyIns.reduce((total, buyIn) => total + buyIn, 0), 0
-  );
+  const totalIn = gamePlayers.reduce((sum, gp) => sum + calculateTotalBuyIn(gp.buyIns), 0);
   const totalOut = Object.values(cashOuts).reduce((sum, amount) => sum + amount, 0);
   const difference = totalOut - totalIn;
   const validation = {
@@ -139,7 +137,7 @@ export default function CashOutClient({
           const player = players.find(p => p.id === gamePlayer.playerId);
           if (!player) return null;
 
-          const totalBuyIn = gamePlayer.buyIns.reduce((sum, amount) => sum + amount, 0);
+          const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
           const cashOut = cashOuts[gamePlayer.playerId] || 0;
           const profit = cashOut - totalBuyIn;
 
@@ -164,7 +162,7 @@ export default function CashOutClient({
                 </div>
                 <div className={`text-right flex-shrink-0 ${profit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   <p className="text-3xl font-display font-bold">
-                    {profit >= 0 ? '+' : ''}${profit.toFixed(2)}
+                    {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
                   </p>
                   <p className="text-xs uppercase tracking-wider font-semibold">
                     {profit >= 0 ? 'profit' : 'loss'}

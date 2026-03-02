@@ -23,10 +23,7 @@ export default async function ResultsPage({ params }: ResultsPageProps) {
 
   const game: Game | null = gameRes.data;
   const gamePlayers: GamePlayer[] = gamePlayersRes.data || [];
-  const players: Player[] = (playersRes.data || []).map(p => ({
-    ...p,
-    name: `${p.first_name} ${p.last_name}${p.nickname ? ` '${p.nickname}'` : ''}`
-  }));
+  const players: Player[] = playersRes.data || [];
 
   if (!game) {
     return (

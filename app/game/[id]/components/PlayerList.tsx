@@ -25,6 +25,7 @@ export default function PlayerList({
   if (rsvps.length === 0) return null;
 
   const isConfirmed = type === 'confirmed';
+  const playerMap = new Map(players.map(p => [p.id, p]));
 
   return (
     <div className="glass-panel rounded-2xl p-6 mb-6 border border-white/10">
@@ -40,7 +41,7 @@ export default function PlayerList({
       </h3>
       <div className="space-y-2">
         {rsvps.map((rsvp, index) => {
-          const player = players.find(p => p.id === rsvp.playerId);
+          const player = playerMap.get(rsvp.playerId);
           if (!player) return null;
 
           return (

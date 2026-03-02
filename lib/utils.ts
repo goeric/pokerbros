@@ -1,4 +1,4 @@
-import { Player, Game } from '@/types';
+import { Player, Game, GamePlayer } from '@/types';
 
 export function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
@@ -45,6 +45,18 @@ export function formatPlayerName(player: Player, includeNickname: boolean = true
     return `${player.first_name} ${player.last_name}`;
   }
   return `${player.first_name} "${player.nickname}" ${player.last_name}`.trim().replace(/\s+/g, ' ');
+}
+
+export function calculateTotalBuyIn(buyIns: number[]): number {
+  return buyIns.reduce((sum, amount) => sum + amount, 0);
+}
+
+export function calculateTotalPot(gamePlayers: GamePlayer[]): number {
+  return gamePlayers.reduce((sum, gp) => sum + calculateTotalBuyIn(gp.buyIns), 0);
+}
+
+export function calculateTotalRebuys(gamePlayers: GamePlayer[]): number {
+  return gamePlayers.reduce((sum, gp) => sum + gp.buyIns.length - 1, 0);
 }
 
 /**

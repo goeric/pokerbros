@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency, formatPlayerName } from '@/lib/utils';
+import { formatCurrency, formatPlayerName, calculateTotalBuyIn, calculateTotalPot, calculateTotalRebuys } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
 import { addRebuy, removeLastRebuy } from './actions';
 import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy } from '@phosphor-icons/react';
@@ -55,9 +55,7 @@ export default function LiveGameClient({
   };
 
   // Calculate total pot from game_players
-  const totalPot = gamePlayers.reduce((sum, gp) =>
-    sum + gp.buyIns.reduce((total, buyIn) => total + buyIn, 0), 0
-  );
+  const totalPot = calculateTotalPot(gamePlayers);
 
   // Find player with most rebuys (only if they have rebuys, not just initial buy-in)
   const playersWithRebuys = gamePlayers.filter(gp => gp.buyIns.length > 1);
@@ -105,7 +103,7 @@ export default function LiveGameClient({
             <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Rebuys</p>
           </div>
           <p className="text-3xl font-display font-bold text-white">
-            {gamePlayers.reduce((sum, gp) => sum + gp.buyIns.length - 1, 0)}
+            {calculateTotalRebuys(gamePlayers)}
           </p>
         </div>
         <div className="glass-panel rounded-xl p-6 border border-white/10 col-span-2 md:col-span-1">
@@ -132,7 +130,7 @@ export default function LiveGameClient({
           const player = players.find(p => p.id === gamePlayer.playerId);
           if (!player) return null;
 
-          const totalBuyIn = gamePlayer.buyIns.reduce((sum, amount) => sum + amount, 0);
+          const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
           const rebuyCount = gamePlayer.buyIns.length - 1;
 
           return (

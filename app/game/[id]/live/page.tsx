@@ -73,10 +73,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   ]);
 
   const gamePlayers: GamePlayer[] = gamePlayersRes.data || [];
-  const players: Player[] = (playersRes.data || []).map(p => ({
-    ...p,
-    name: `${p.first_name} ${p.last_name}${p.nickname ? ` '${p.nickname}'` : ''}`
-  }));
+  const players: Player[] = playersRes.data || [];
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

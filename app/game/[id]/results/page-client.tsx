@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Game, GamePlayer, Player } from '@/types';
-import { formatCurrency, formatDate, formatTime, formatPlayerName } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime, formatPlayerName, calculateTotalBuyIn, calculateTotalPot, calculateTotalRebuys } from '@/lib/utils';
 import { triggerConfetti } from '@/lib/confetti';
 import BackButton from '@/components/BackButton';
 import { Trophy, Crown, ShareNetwork, House, Users, Fire, TrendUp, ChartBar } from '@phosphor-icons/react';
@@ -47,10 +47,8 @@ export default function ResultsClient({
 
   const winner = gamePlayers[0];
   const loser = gamePlayers[gamePlayers.length - 1];
-  const totalPot = gamePlayers.reduce((sum, gp) =>
-    sum + gp.buyIns.reduce((s, b) => s + b, 0), 0
-  );
-  const totalRebuys = gamePlayers.reduce((sum, gp) => sum + gp.buyIns.length - 1, 0);
+  const totalPot = calculateTotalPot(gamePlayers);
+  const totalRebuys = calculateTotalRebuys(gamePlayers);
   const avgBuyIn = totalPot / gamePlayers.length;
 
   const winnerPlayer = players.find(p => p.id === winner?.playerId);
@@ -100,7 +98,7 @@ export default function ResultsClient({
                 +{formatCurrency(winner.profit)}
               </p>
               <p className="text-gray-400 text-sm">
-                {((winner.profit / winner.buyIns.reduce((sum, b) => sum + b, 0)) * 100).toFixed(0)}% ROI
+                {((winner.profit / calculateTotalBuyIn(winner.buyIns)) * 100).toFixed(0)}% ROI
               </p>
             </div>
           </div>
@@ -147,7 +145,7 @@ export default function ResultsClient({
             const player = players.find(p => p.id === gamePlayer.playerId);
             if (!player) return null;
 
-            const totalBuyIn = gamePlayer.buyIns.reduce((sum, amount) => sum + amount, 0);
+            const totalBuyIn = calculateTotalBuyIn(gamePlayer.buyIns);
             const roi = (gamePlayer.profit / totalBuyIn) * 100;
             const medals = ['🥇', '🥈', '🥉'];
             const medal = medals[index];

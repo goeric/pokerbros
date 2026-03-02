@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { RSVPSchema, GameSchema, formatZodError } from '@/lib/validation';
+import { MAX_SEATS } from '@/lib/constants';
 import { sendEmail } from '@/lib/email/send-email';
 import { shouldSendNotification } from '@/lib/email/check-preferences';
 import { generateGameIcs } from '@/lib/email/generate-ics';
@@ -60,7 +61,7 @@ export async function addRSVP(gameId: string, playerId: string) {
       .eq('gameId', gameId);
 
     const confirmedCount = rsvps?.filter((r) => r.status === 'confirmed').length || 0;
-    const status = confirmedCount >= 8 ? 'waitlist' : 'confirmed';
+    const status = confirmedCount >= MAX_SEATS ? 'waitlist' : 'confirmed';
     const waitlistPosition =
       status === 'waitlist' ? (rsvps?.filter((r) => r.status === 'waitlist').length || 0) + 1 : null;
 

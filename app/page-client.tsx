@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { Game, Player, GamePlayer, RSVP } from '@/types';
-import { formatDateWithDay, formatTime, formatCurrency, formatPlayerName } from '@/lib/utils';
+import { formatDateWithDay, formatTime, formatCurrency, formatPlayerName, isGameLive, calculateTotalBuyIn } from '@/lib/utils';
+import { MAX_SEATS } from '@/lib/constants';
 import GameCard from '@/components/GameCard';
 import CreateGameModal from '@/components/CreateGameModal';
 import { Spade, CalendarDots, Plus } from '@phosphor-icons/react';
@@ -19,6 +20,7 @@ interface HomeClientProps {
 
 export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin }: HomeClientProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const playerMap = new Map(players.map(p => [p.id, p]));
 
   // Helper function to get RSVP counts for a game
   const getRsvpCounts = (gameId: string) => {
@@ -35,11 +37,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
   // Calculate actual money played by summing all buy-ins from game_players
   const completedGameIds = new Set(completedGames.map(g => g.id));
   const completedGamePlayers = gamePlayers.filter(gp => completedGameIds.has(gp.gameId));
-  const totalMoneyPlayed = completedGamePlayers.reduce((sum, gp) => {
-    // Sum all buy-ins for this player (buyIns is an array)
-    const playerTotal = gp.buyIns.reduce((acc, buyIn) => acc + buyIn, 0);
-    return sum + playerTotal;
-  }, 0);
+  const totalMoneyPlayed = completedGamePlayers.reduce((sum, gp) => sum + calculateTotalBuyIn(gp.buyIns), 0);
 
   // Find chip leader
   let chipLeader: { player: Player; profit: number } | null = null;
@@ -65,17 +63,6 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
     totalMoneyPlayed,
     chipLeader,
     nextGameDate
-  };
-
-  // Helper to check if a game should be live based on its scheduled time
-  const isGameLive = (game: Game) => {
-    if (game.status === 'in_progress') return true;
-    if (game.status === 'completed') return false;
-
-    // Check if scheduled time has passed (game should be live)
-    const gameDateTime = new Date(`${game.date}T${game.time}`);
-    const now = new Date();
-    return gameDateTime <= now;
   };
 
   // Separate games into live, upcoming, and completed
@@ -200,7 +187,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                   confirmedCount={getRsvpCounts(liveGames[0].id).confirmed}
                   confirmedPlayers={rsvps
                     .filter(r => r.gameId === liveGames[0].id && r.status === 'confirmed')
-                    .map(r => players.find(p => p.id === r.playerId))
+                    .map(r => playerMap.get(r.playerId))
                     .filter((p): p is Player => p !== undefined)}
                 />
               </>
@@ -215,7 +202,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                   confirmedCount={getRsvpCounts(upcomingGamesList[0].id).confirmed}
                   confirmedPlayers={rsvps
                     .filter(r => r.gameId === upcomingGamesList[0].id && r.status === 'confirmed')
-                    .map(r => players.find(p => p.id === r.playerId))
+                    .map(r => playerMap.get(r.playerId))
                     .filter((p): p is Player => p !== undefined)}
                 />
               </>
@@ -247,7 +234,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                 // Get confirmed players for this game
                 const confirmedPlayers = rsvps
                   .filter(r => r.gameId === game.id && r.status === 'confirmed')
-                  .map(r => players.find(p => p.id === r.playerId))
+                  .map(r => playerMap.get(r.playerId))
                   .filter((p): p is Player => p !== undefined);
 
                 return (
@@ -274,7 +261,7 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
                       {/* Player Avatars */}
                       {confirmedPlayers.length > 0 && (
                         <div className="flex -space-x-2 flex-wrap gap-y-1">
-                          {confirmedPlayers.slice(0, 8).map((player, idx) => (
+                          {confirmedPlayers.slice(0, MAX_SEATS).map((player, idx) => (
                             <Image
                               key={player.id}
                               src={`/avatars/${player.avatar}`}
@@ -292,10 +279,10 @@ export default function HomeClient({ games, players, gamePlayers, rsvps, isAdmin
 
                       {/* Seat Indicator */}
                       <div className="flex items-center gap-1">
-                        {[...Array(Math.min(8, confirmed))].map((_, i) => (
+                        {[...Array(Math.min(MAX_SEATS, confirmed))].map((_, i) => (
                           <div key={i} className="w-1.5 h-1.5 rounded-full bg-poker-gold" />
                         ))}
-                        {[...Array(Math.max(0, 8 - confirmed))].map((_, i) => (
+                        {[...Array(Math.max(0, MAX_SEATS - confirmed))].map((_, i) => (
                           <div key={i} className="w-1.5 h-1.5 rounded-full bg-gray-700" />
                         ))}
                       </div>

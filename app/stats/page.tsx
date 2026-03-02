@@ -10,10 +10,7 @@ export default async function StatsPage() {
     .from('players')
     .select('*');
 
-  const players: Player[] = (playersData || []).map(p => ({
-    ...p,
-    name: `${p.first_name}${p.nickname ? ` "${p.nickname}"` : ''} ${p.last_name}`.trim()
-  }));
+  const players: Player[] = playersData || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
