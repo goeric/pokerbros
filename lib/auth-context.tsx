@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, startTransition, useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 
@@ -20,6 +20,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
+  useEffect(() => {
+    if (!supabase) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { error: new Error('Supabase not configured') };
@@ -31,8 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!error) {
-      router.push('/admin');
-      router.refresh(); // Refresh to update server-side auth state
+      startTransition(() => {
+        router.replace('/admin');
+      });
     }
 
     return { error };
@@ -60,8 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) return;
 
     await supabase.auth.signOut();
-    router.push('/');
-    router.refresh(); // Refresh to update server-side auth state
+    startTransition(() => {
+      router.replace('/');
+    });
   };
 
   const value = {

@@ -3,10 +3,10 @@
 import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/lib/auth-server';
+import { useAuth } from '@/lib/auth-context';
 import PokerBrosLogo from './PokerBrosLogo';
 import { Spade, GearSix, Crown, List, X } from '@phosphor-icons/react';
 
@@ -18,15 +18,12 @@ interface TopNavigationProps {
 }
 
 export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg', playerName = '' }: TopNavigationProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    await signOut();
   };
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);

@@ -113,9 +113,18 @@ export default function GameDetailClient({
   };
 
   const handleDeleteGame = async () => {
-    if (!confirm('Delete this game? This action cannot be undone.')) return;
+    const confirmationMessage = gameShouldBeLive || game.status === 'in_progress'
+      ? 'Delete this live game? This will remove live tracking, RSVPs, and any recorded buy-ins. This action cannot be undone.'
+      : 'Delete this game? This action cannot be undone.';
+
+    if (!confirm(confirmationMessage)) return;
+
     startTransition(async () => {
-      await deleteGame(game.id);
+      const result = await deleteGame(game.id);
+      if ('error' in result) {
+        alert(result.error);
+        return;
+      }
       router.push('/');
     });
   };
@@ -276,16 +285,14 @@ export default function GameDetailClient({
                 <Pencil weight="bold" size={20} />
                 Edit Game
               </button>
-              {!gameShouldBeLive && game.status === 'upcoming' && (
-                <button
-                  onClick={handleDeleteGame}
-                  disabled={isPending}
-                  className="px-6 py-4 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <Trash weight="bold" size={20} />
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={handleDeleteGame}
+                disabled={isPending}
+                className="px-6 py-4 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Trash weight="bold" size={20} />
+                Delete
+              </button>
             </>
           )}
         </div>

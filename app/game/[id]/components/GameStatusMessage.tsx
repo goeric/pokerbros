@@ -21,10 +21,18 @@ export default function GameStatusMessage({
   const [isPending, startTransition] = useTransition();
 
   const handleDeleteGame = async () => {
-    if (!confirm('Delete this game? This action cannot be undone.')) return;
+    const confirmationMessage = game.status === 'in_progress'
+      ? 'Delete this live game? This will remove live tracking, RSVPs, and any recorded buy-ins. This action cannot be undone.'
+      : 'Delete this game? This action cannot be undone.';
+
+    if (!confirm(confirmationMessage)) return;
 
     startTransition(async () => {
-      await deleteGame(game.id);
+      const result = await deleteGame(game.id);
+      if ('error' in result) {
+        alert(result.error);
+        return;
+      }
       router.push('/');
     });
   };
@@ -46,13 +54,25 @@ export default function GameStatusMessage({
         <p className="text-gray-400 mb-8 text-lg">
           The game is currently being played. Click below to track buy-ins and rebuys.
         </p>
-        <button
-          onClick={() => router.push(`/game/${game.id}/live`)}
-          className="px-8 py-4 bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-bold rounded-lg transition-all border border-orange-300 shadow-lg inline-flex items-center gap-2"
-        >
-          <Play weight="fill" size={20} />
-          Go to Live Tracker
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() => router.push(`/game/${game.id}/live`)}
+            className="px-8 py-4 bg-gradient-to-b from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white font-bold rounded-lg transition-all border border-orange-300 shadow-lg inline-flex items-center gap-2"
+          >
+            <Play weight="fill" size={20} />
+            Go to Live Tracker
+          </button>
+          {isAdmin && (
+            <button
+              onClick={handleDeleteGame}
+              disabled={isPending}
+              className="px-6 py-4 bg-red-600/20 hover:bg-red-600/30 border border-red-500/50 text-red-400 font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Trash weight="bold" size={20} />
+              Delete Game
+            </button>
+          )}
+        </div>
       </div>
     );
   }

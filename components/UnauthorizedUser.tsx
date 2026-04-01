@@ -1,16 +1,12 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-context';
 
 export default function UnauthorizedUser() {
-  const router = useRouter();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    await signOut();
   };
 
   return (
