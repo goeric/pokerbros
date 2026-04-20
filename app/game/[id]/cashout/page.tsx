@@ -3,6 +3,7 @@ import { Game, GamePlayer, Player } from '@/types';
 import CashOutClient from './page-client';
 import { createSupabaseServerClient } from '@/lib/auth-helpers';
 import { getServerAuth } from '@/lib/auth-server';
+import { isGameLive } from '@/lib/utils';
 
 interface CashOutPageProps {
   params: Promise<{ id: string }>;
@@ -29,7 +30,7 @@ export default async function CashOutPage({ params }: CashOutPageProps) {
   const gamePlayers: GamePlayer[] = gamePlayersRes.data || [];
   const players: Player[] = playersRes.data || [];
 
-  if (!game || game.status === 'completed' || game.status === 'upcoming') {
+  if (!game || game.status === 'completed' || !isGameLive(game)) {
     redirect(`/game/${gameId}`);
   }
 
