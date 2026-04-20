@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Game, GamePlayer, Player } from '@/types';
 import { formatCurrency, formatPlayerName, calculateTotalBuyIn, calculateTotalPot, calculateTotalRebuys } from '@/lib/utils';
 import BackButton from '@/components/BackButton';
-import { addRebuy, removeLastRebuy, cashOutEarly } from './actions';
-import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy, Check, X } from '@phosphor-icons/react';
+import Modal from '@/components/Modal';
+import { addRebuy, removeLastRebuy, cashOutEarly, addWalkInPlayer } from './actions';
+import { CurrencyDollar, Users, Fire, Target, Plus, Minus, SignOut, Trophy, Check, X, UserPlus, MagnifyingGlass } from '@phosphor-icons/react';
 
 interface LiveGameClientProps {
   game: Game;
@@ -31,8 +32,27 @@ export default function LiveGameClient({
     // Initialize from server data — any player with cashOut > 0 was already cashed out
     return new Set(initialGamePlayers.filter(gp => gp.cashOut > 0).map(gp => gp.id));
   });
+  const [walkInOpen, setWalkInOpen] = useState(false);
+  const [walkInSearch, setWalkInSearch] = useState('');
 
   const gamePlayers = initialGamePlayers;
+
+  const activePlayerIds = useMemo(
+    () => new Set(gamePlayers.map(gp => gp.playerId)),
+    [gamePlayers]
+  );
+
+  const walkInCandidates = useMemo(() => {
+    const query = walkInSearch.trim().toLowerCase();
+    return players
+      .filter(p => !activePlayerIds.has(p.id))
+      .filter(p => {
+        if (!query) return true;
+        const haystack = `${p.first_name} ${p.last_name} ${p.nickname ?? ''} ${p.email}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => a.first_name.localeCompare(b.first_name));
+  }, [players, activePlayerIds, walkInSearch]);
 
   const handleAddRebuy = async (gamePlayerId: string) => {
     setCoinAnimation(gamePlayerId);
@@ -71,6 +91,18 @@ export default function LiveGameClient({
         setCashedOutPlayerIds(prev => new Set(prev).add(gamePlayerId));
         setCashOutMode(null);
         setCashOutInputValue('');
+      }
+    });
+  };
+
+  const handleAddWalkIn = (playerId: string) => {
+    startTransition(async () => {
+      const result = await addWalkInPlayer(game.id, playerId);
+      if ('error' in result) {
+        alert(result.error);
+      } else {
+        setWalkInOpen(false);
+        setWalkInSearch('');
       }
     });
   };
@@ -157,6 +189,20 @@ export default function LiveGameClient({
           )}
         </div>
       </div>
+
+      {/* Walk-in Add (admin only) */}
+      {isAdmin && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => { setWalkInOpen(true); setWalkInSearch(''); }}
+            disabled={isPending}
+            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-b from-poker-gold to-yellow-600 hover:from-poker-goldlight hover:to-poker-gold text-black font-bold rounded-xl transition-all border border-yellow-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <UserPlus weight="bold" size={20} />
+            Add Walk-in
+          </button>
+        </div>
+      )}
 
       {/* Player Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -282,6 +328,68 @@ export default function LiveGameClient({
           );
         })}
       </div>
+
+      {/* Walk-in Modal (admin only) */}
+      {isAdmin && (
+        <Modal
+          isOpen={walkInOpen}
+          onClose={() => { setWalkInOpen(false); setWalkInSearch(''); }}
+          title="Add Walk-in Player"
+          maxWidth="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Adds an existing player to this game with a {formatCurrency(game.buyIn)} buy-in.
+              To add a brand-new player, create them in Admin first.
+            </p>
+
+            <div className="relative">
+              <MagnifyingGlass weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={walkInSearch}
+                onChange={(e) => setWalkInSearch(e.target.value)}
+                placeholder="Search by name, nickname, or email"
+                className="w-full pl-10 pr-4 py-3 bg-black/40 border-2 border-white/10 focus:border-poker-gold/50 rounded-xl text-white focus:ring-2 focus:ring-poker-gold/20 focus:outline-none transition-all"
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-80 overflow-y-auto -mx-2 px-2 space-y-2">
+              {walkInCandidates.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-8">
+                  {players.length === activePlayerIds.size
+                    ? 'All players are already in this game.'
+                    : 'No players match your search.'}
+                </p>
+              ) : (
+                walkInCandidates.map(player => (
+                  <button
+                    key={player.id}
+                    onClick={() => handleAddWalkIn(player.id)}
+                    disabled={isPending}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-poker-gold/40 rounded-xl transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Image
+                      src={`/avatars/${player.avatar}`}
+                      alt={formatPlayerName(player)}
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="w-10 h-10 rounded-full border border-poker-gold/40 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-semibold truncate">{formatPlayerName(player)}</p>
+                      <p className="text-gray-400 text-xs truncate">{player.email}</p>
+                    </div>
+                    <Plus weight="bold" className="text-poker-gold flex-shrink-0" size={20} />
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* End Game Button - Admin Only */}
       {isAdmin && (

@@ -34,6 +34,7 @@ const mockAdminUser: User = {
 jest.mock('@/lib/auth-helpers', () => ({
   createSupabaseServerClient: jest.fn(),
   requireAdmin: jest.fn(),
+  requireGameNotCompleted: jest.fn().mockResolvedValue({ game: { status: 'in_progress', buyIn: 100 } }),
   handleServerError: jest.fn((error: any, code?: string, message?: string) => {
     if (error instanceof Error) {
       return { error: message || error.message }
@@ -91,10 +92,12 @@ describe('P1.1: Live Game Management (Important)', () => {
           return {
             select: jest.fn(() => ({
               eq: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
-                  error: null,
-                }),
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({
+                    data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
+                    error: null,
+                  }),
+                })),
               })),
             })),
             update: jest.fn((data: any) => {
@@ -130,10 +133,12 @@ describe('P1.1: Live Game Management (Important)', () => {
           return {
             select: jest.fn(() => ({
               eq: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
-                  error: null,
-                }),
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({
+                    data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
+                    error: null,
+                  }),
+                })),
               })),
             })),
             update: jest.fn((data: any) => {
@@ -176,10 +181,12 @@ describe('P1.1: Live Game Management (Important)', () => {
           return {
             select: jest.fn(() => ({
               eq: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
-                  error: null,
-                }),
+                eq: jest.fn(() => ({
+                  single: jest.fn().mockResolvedValue({
+                    data: { id: GAME_PLAYER_ID, buyIns: existingBuyIns },
+                    error: null,
+                  }),
+                })),
               })),
             })),
             update: jest.fn((data: any) => {

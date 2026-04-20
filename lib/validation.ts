@@ -106,6 +106,14 @@ export const EarlyCashOutSchema = z.object({
 });
 
 /**
+ * Validation schema for adding a walk-in player to a live game
+ */
+export const WalkInSchema = z.object({
+  gameId: z.string().uuid('Invalid game ID'),
+  playerId: z.string().uuid('Invalid player ID'),
+});
+
+/**
  * Helper function to format Zod errors into user-friendly messages
  */
 export function formatZodError(error: z.ZodError): {

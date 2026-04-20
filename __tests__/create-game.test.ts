@@ -37,7 +37,20 @@ const mockRequireAdmin = requireAdmin as jest.MockedFunction<typeof requireAdmin
 const mockSendEmail = sendEmail as jest.MockedFunction<typeof sendEmail>;
 const mockCreateEmailActionToken = createEmailActionToken as jest.MockedFunction<typeof createEmailActionToken>;
 
+// Use a date 30 days in the future so the test stays valid as time passes.
+// Formatted YYYY-MM-DD in local time to match how GameSchema parses dates.
+function futureGameDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 describe('createGame', () => {
+  const GAME_DATE = futureGameDate();
+
   beforeEach(() => {
     jest.clearAllMocks();
     scheduledAfterCallback = null;
@@ -64,7 +77,7 @@ describe('createGame', () => {
             single: jest.fn().mockResolvedValue({
               data: {
                 id: 'game-123',
-                date: '2026-04-03',
+                date: GAME_DATE,
                 time: '19:00',
                 buyIn: 100,
                 location_id: '223e4567-e89b-12d3-a456-426614174001',
@@ -105,7 +118,7 @@ describe('createGame', () => {
 
   it('returns success and schedules notifications after creating the game', async () => {
     const result = await createGame({
-      date: '2026-04-03',
+      date: GAME_DATE,
       time: '19:00',
       buyIn: 100,
       location_id: '223e4567-e89b-12d3-a456-426614174001',
@@ -116,7 +129,7 @@ describe('createGame', () => {
       success: true,
       data: {
         id: 'game-123',
-        date: '2026-04-03',
+        date: GAME_DATE,
         time: '19:00',
         buyIn: 100,
         location_id: '223e4567-e89b-12d3-a456-426614174001',

@@ -1,8 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
-import { RebuySchema, EarlyCashOutSchema, formatZodError } from '@/lib/validation';
+import { createSupabaseServerClient, requireAdmin, requireGameNotCompleted, handleServerError } from '@/lib/auth-helpers';
+import { RebuySchema, EarlyCashOutSchema, WalkInSchema, formatZodError } from '@/lib/validation';
 
 export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount: number) {
   try {
@@ -17,11 +17,15 @@ export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount
       return formatZodError(result.error);
     }
 
-    // Get current buy-ins
+    const guard = await requireGameNotCompleted(supabase, gameId, 'Rebuys are only allowed during a live game.');
+    if ('error' in guard) return guard;
+
+    // Filtered by gameId to prevent cross-game mutations
     const { data: gamePlayer } = await supabase
       .from('game_players')
       .select('buyIns')
       .eq('id', gamePlayerId)
+      .eq('gameId', gameId)
       .single();
 
     if (!gamePlayer) {
@@ -50,11 +54,15 @@ export async function removeLastRebuy(gameId: string, gamePlayerId: string) {
     // ✅ Authorization check
     await requireAdmin(supabase);
 
-    // Get current buy-ins
+    const guard = await requireGameNotCompleted(supabase, gameId, 'Rebuys are only allowed during a live game.');
+    if ('error' in guard) return guard;
+
+    // Filtered by gameId to prevent cross-game mutations
     const { data: gamePlayer } = await supabase
       .from('game_players')
       .select('buyIns')
       .eq('id', gamePlayerId)
+      .eq('gameId', gameId)
       .single();
 
     if (!gamePlayer) {
@@ -82,6 +90,44 @@ export async function removeLastRebuy(gameId: string, gamePlayerId: string) {
   }
 }
 
+export async function addWalkInPlayer(gameId: string, playerId: string) {
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    await requireAdmin(supabase);
+
+    const result = WalkInSchema.safeParse({ gameId, playerId });
+    if (!result.success) {
+      return formatZodError(result.error);
+    }
+
+    const guard = await requireGameNotCompleted(supabase, gameId, 'Cannot add a walk-in to a completed game.');
+    if ('error' in guard) return guard;
+    const { game } = guard;
+
+    // Unique constraint on (gameId, playerId) enforces no duplicates — let INSERT fail with 23505
+    const { error } = await supabase.from('game_players').insert({
+      gameId,
+      playerId,
+      buyIns: [game.buyIn],
+      cashOut: 0,
+      profit: 0,
+    });
+
+    if (error) {
+      if (error.code === '23505') {
+        return { error: 'Player is already in this game.' };
+      }
+      return handleServerError(error, 'ERR_WALKIN_INSERT', 'Failed to add walk-in player. Please try again.');
+    }
+
+    revalidatePath(`/game/${gameId}/live`);
+    return { success: true };
+  } catch (error) {
+    return handleServerError(error, 'ERR_WALKIN_AUTH');
+  }
+}
+
 export async function cashOutEarly(gameId: string, gamePlayerId: string, cashOutAmount: number) {
   try {
     const supabase = await createSupabaseServerClient();
@@ -93,22 +139,10 @@ export async function cashOutEarly(gameId: string, gamePlayerId: string, cashOut
       return formatZodError(result.error);
     }
 
-    // Verify game is in progress
-    const { data: game, error: gameError } = await supabase
-      .from('games')
-      .select('status')
-      .eq('id', gameId)
-      .single();
+    const guard = await requireGameNotCompleted(supabase, gameId, 'Cash-out is only allowed during a live game.');
+    if ('error' in guard) return guard;
 
-    if (gameError || !game) {
-      return handleServerError(gameError || new Error('Game not found'), 'ERR_CASHOUT_GAME_FETCH', 'Game not found.');
-    }
-
-    if (game.status !== 'in_progress') {
-      return { error: 'Cash-out is only allowed during an active game.' };
-    }
-
-    // Fetch game player (filtered by both id and gameId to prevent cross-game mutations)
+    // Filtered by both id and gameId to prevent cross-game mutations
     const { data: gamePlayer, error: fetchError } = await supabase
       .from('game_players')
       .select('buyIns')

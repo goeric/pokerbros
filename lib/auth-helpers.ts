@@ -66,6 +66,30 @@ export async function requireAdmin(supabase: SupabaseClient) {
 }
 
 /**
+ * Guards a server action against mutating a completed game.
+ * Returns `{ error }` if the game is missing or completed, `{ game }` otherwise.
+ */
+export async function requireGameNotCompleted(
+  supabase: SupabaseClient,
+  gameId: string,
+  completedMessage = 'This action is not allowed on a completed game.'
+): Promise<{ error: string } | { game: { status: string; buyIn: number } }> {
+  const { data: game, error } = await supabase
+    .from('games')
+    .select('status, "buyIn"')
+    .eq('id', gameId)
+    .single();
+
+  if (error || !game) {
+    return handleServerError(error || new Error('Game not found'), 'ERR_GAME_FETCH', 'Game not found.');
+  }
+  if (game.status === 'completed') {
+    return { error: completedMessage };
+  }
+  return { game };
+}
+
+/**
  * Safe error handler that logs detailed errors server-side
  * and returns generic messages to the client
  *
