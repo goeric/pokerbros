@@ -9,7 +9,7 @@ SELECT
   true,
   'superadmin'::user_role
 FROM auth.users
-WHERE email = 'you@example.com'
+WHERE email = 'you@example.com'  -- replace with your Google login email
 ON CONFLICT (id) DO UPDATE
 SET
   is_superadmin = true,

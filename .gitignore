@@ -44,3 +44,6 @@ supabase/seed.sql
 # editor/agent config (per-machine, not shared)
 .blackboxcli/
 .claude/settings.local.json
+
+# editor backup files
+*.backup

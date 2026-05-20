@@ -1,225 +1,196 @@
 # PokerBros
 
-**Track buy-ins, results, and seats for your regular house poker game** - A modern web application for managing home poker games with real-time tracking and player statistics.
+**A modern web app for running monthly home poker games — RSVPs, waitlists, live buy-in tracking, balanced cash-outs, and lifetime player stats.**
 
-![PokerBros](https://img.shields.io/badge/Built%20with-Next.js-black)
+🃏 **Live:** [pokerbros.xyz](https://pokerbros.xyz)
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-38B2AC?logo=tailwind-css&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## Features
 
-- **🎴 Game Management**: Create and manage poker games with automatic RSVP tracking
-- **📋 Smart Waitlist**: Automatic seat management with waitlist auto-promotion (8 seat limit)
-- **💰 Live Tracking**: Real-time buy-in and rebuy tracking during games
-- **📊 Cash-Out Validation**: Ensure balanced books with built-in validation
-- **🏆 Player Statistics**: Comprehensive leaderboards and performance tracking
-- **📱 Mobile-First**: Fully responsive design optimized for all devices
-- **🎮 Demo Mode**: Pre-loaded with realistic seed data for testing
+- **🎴 Game management** — schedule games, edit details, cancel with calendar updates
+- **📋 Smart RSVPs** — 8-seat limit with automatic waitlist promotion when someone drops
+- **💰 Live buy-in tracking** — admins record buy-ins and rebuys in real time during the game
+- **📊 Cash-out validation** — books must balance (total in = total out) before a game can be finalized
+- **🏆 Lifetime player stats** — leaderboards, biggest win/loss, profit history, ranking
+- **📧 Email notifications** — RSVP confirmations with `.ics` calendar invites, waitlist promotions, game updates, cancellations (powered by Resend + React Email)
+- **🔐 Google OAuth** — admin-only access for game/player management; superadmin role for elevated permissions
+- **🚩 Feature flags** — runtime toggles via the admin settings page (e.g., email safety mode)
+- **📱 Mobile-first** — casino glassmorphism design that works edge-to-edge on phones
 
 ## Tech Stack
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: Supabase (optional - works with local state)
-- **State Management**: React Hooks + Local Storage
-- **Deployment**: Vercel-ready
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 (App Router, Server Components, Server Actions) |
+| Language | TypeScript (strict) |
+| Styling | Tailwind CSS — casino glassmorphism theme with gold accents |
+| Icons | Phosphor Icons |
+| Database | Supabase Postgres (with Row Level Security) |
+| Auth | Supabase Auth + Google OAuth |
+| Email | Resend + React Email + `.ics` calendar invites |
+| Testing | Jest + React Testing Library |
+| Hosting | Vercel |
+| Package manager | pnpm |
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+
+- [pnpm](https://pnpm.io/installation)
+- [Docker Desktop](https://docs.docker.com/desktop/) (for local Supabase)
+- [Supabase CLI](https://supabase.com/docs/guides/cli)
 
-### Installation
+### 1. Clone and install
 
-1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/goeric/pokerbros.git
 cd pokerbros
+pnpm install
 ```
 
-2. Install dependencies:
+### 2. Start local Supabase
+
 ```bash
-npm install
+supabase start
 ```
 
-3. (Optional) Set up Supabase:
-   - Create a `.env.local` file based on `.env.local.example`
-   - Add your Supabase credentials:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-   - **Note**: The app works without Supabase using local browser storage
+Copy the `API URL` and `anon key` from the output — you'll need them next.
 
-4. Run the development server:
+### 3. Configure environment variables
+
+Create `.env.local` from the template:
+
 ```bash
-npm run dev
+cp .env.local.example .env.local
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
+Fill in:
 
-## Usage
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321   # use localhost, NOT 127.0.0.1
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<from supabase start output>
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=<your Google OAuth client id>
+GOOGLE_CLIENT_SECRET=<your Google OAuth client secret>
+RESEND_API_KEY=<optional — for email>
+```
 
-### Host a Game
+### 4. Create your superadmin
 
-1. Click the "+" button (bottom right) or "Host New Game" button
-2. Fill in game details (date, time, buy-in, venue)
-3. Create the game
+After signing in with Google for the first time, promote yourself in Supabase Studio (http://localhost:54323) by running:
 
-### RSVP System
+```sql
+-- scripts/add-superadmin.sql
+-- (edit the email to match your Google login)
+```
 
-1. Players select their name from the dropdown
-2. First 8 get confirmed seats
-3. Additional players go to waitlist
-4. Auto-promotion when someone cancels
+### 5. Run the app
 
-### Live Game Tracking
+```bash
+pnpm dev
+```
 
-1. Click "Start Game" on game day
-2. Track buy-ins and rebuys in real-time
-3. View total pot and player statistics
-4. End game when ready to cash out
+Open [http://localhost:3000](http://localhost:3000).
 
-### Record Results
+📖 Full setup walkthrough: [`SETUP_AUTH.md`](./SETUP_AUTH.md) · Quick reference: [`LOCAL_SETUP_SUMMARY.md`](./LOCAL_SETUP_SUMMARY.md) · Backend architecture: [`backend.md`](./backend.md)
 
-1. Enter each player's cash-out amount
-2. Use quick buttons (Busted, Even) or manual entry
-3. Validate totals match (Total In = Total Out)
-4. Finalize to complete the game
+## Scripts
 
-### View Statistics
+```bash
+pnpm dev              # Dev server (localhost:3000)
+pnpm build            # Production build
+pnpm start            # Run production build locally
+pnpm lint             # Next.js ESLint
+pnpm tsc --noEmit     # Type-check (no emit)
 
-1. Navigate to Statistics page
-2. View leaderboard ranked by profit
-3. Filter by All Time, Last 5 Games, or This Month
-4. See badges: Shark, ATM, Grinder, Hot Streak, etc.
+pnpm test             # All tests
+pnpm test:watch       # Watch mode
+pnpm test:p0          # P0 critical tests (cash-out, RSVPs, auth)
+pnpm test:coverage    # Coverage report
+
+supabase start        # Start local Supabase stack (Docker)
+supabase stop         # Stop it
+supabase db push      # Apply pending migrations (preserves data — preferred)
+supabase migration new <name>   # Scaffold a new migration
+```
+
+> ⚠️ **Never run `supabase db reset` casually** — it wipes all local data. Use `supabase db push` for incremental changes.
 
 ## Project Structure
 
 ```
 pokerbros/
-├── app/                    # Next.js app router pages
-│   ├── game/[id]/         # Game detail and nested pages
-│   │   ├── page.tsx       # Game detail with RSVP
-│   │   ├── live/          # Live game tracker
-│   │   ├── cashout/       # Cash-out recording
-│   │   └── results/       # Game results
-│   ├── stats/             # Statistics dashboard
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Dashboard/homepage
-├── components/            # Reusable UI components
-├── lib/                   # Utilities and business logic
-│   ├── store.ts           # Local storage management
-│   ├── utils.ts           # Helper functions
-│   ├── seed-data.ts       # Demo data
-│   └── confetti.ts        # Celebration animations
-└── types/                 # TypeScript type definitions
+├── app/                      # Next.js App Router
+│   ├── admin/                # Admin CMS (player + game management)
+│   ├── auth/callback/        # OAuth callback route
+│   ├── game/[id]/            # Game detail
+│   │   ├── live/             # Live buy-in tracker
+│   │   ├── cashout/          # Cash-out + validation
+│   │   ├── results/          # Read-only results
+│   │   └── action/           # Server actions for the game flow
+│   ├── login/                # OAuth sign-in
+│   ├── stats/                # Leaderboard
+│   └── layout.tsx            # Root layout (force-dynamic for auth freshness)
+├── components/               # Reusable UI (GameCard, PodiumCard, Modal, …)
+├── lib/
+│   ├── auth-server.ts        # Server-side auth helper (getServerAuth)
+│   ├── auth-context.tsx      # Client-side auth actions only
+│   ├── supabase.ts           # Browser Supabase client
+│   ├── email/                # Resend integration + .ics generation
+│   └── utils.ts              # Currency, date, name formatters
+├── emails/templates/         # React Email templates
+├── supabase/migrations/      # Versioned SQL migrations
+├── __tests__/                # Jest test suites (incl. P0 critical)
+└── types/                    # Shared TypeScript types
 ```
 
-## Key Features Explained
+## Architecture Highlights
 
-### Automatic Waitlist Management
+- **Server-first auth.** `getServerAuth()` resolves the session in Server Components and is passed down as props — no client-side flash, no race conditions.
+- **Server Actions for mutations.** No REST/RPC layer; mutations live next to the pages that trigger them, with `revalidatePath` for cache invalidation.
+- **Row Level Security.** Public read where appropriate; writes gated to authenticated admins at the database level. Auth isn't just a frontend gate.
+- **Automatic live detection.** Games flip to "live" once their scheduled start passes, even if the status hasn't been updated explicitly.
+- **Calendar integration.** RSVP confirmations include a `.ics` attachment with a stable UID so updates modify the same calendar event.
 
-When a confirmed player cancels, the first person on the waitlist is automatically promoted and notified with an animated banner.
+## Testing
 
-### Cash-Out Validation
+P0 (critical) suites cover the business logic with the highest blast radius:
 
-The system ensures that the total amount cashed out equals the total pot, preventing accounting errors.
+- **Cash-out validation** — financial integrity (12 tests)
+- **RSVP auto-promotion** — waitlist handling (8 tests)
+- **RSVP seat limit** — 8-seat cap enforcement (7 tests)
+- **Authorization** — session checks and admin-only actions (6 tests)
 
-### Real-Time Updates
+Before deploying to production, all of the following must pass:
 
-When configured with Supabase, all changes sync instantly across devices. Without Supabase, uses browser local storage.
-
-### Demo Mode
-
-The app comes pre-loaded with:
-- 14 players with poker-themed names
-- 5 completed historical games with realistic results
-- 1 upcoming game with sample RSVPs
+```bash
+pnpm test:p0
+pnpm test
+pnpm tsc --noEmit
+pnpm build
+```
 
 ## Deployment
 
-### Deploy to Vercel
+Deployed to Vercel. The required production env vars are:
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL` — e.g. `https://pokerbros.xyz`
+- `RESEND_API_KEY`
 
-1. Push your code to GitHub
-2. Import the repository in Vercel
-3. Add environment variables (if using Supabase)
-4. Deploy!
-
-## Development
-
-### Commands
-
-```bash
-# Development
-npm run dev
-
-# Build
-npm run build
-
-# Start production server
-npm start
-
-# Lint
-npm run lint
-
-# Type check
-npx tsc --noEmit
-```
-
-### Adding Supabase
-
-To enable real-time features with Supabase:
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Run the following SQL to create tables:
-
-```sql
--- Players table
-CREATE TABLE players (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  total_in DECIMAL DEFAULT 0,
-  total_out DECIMAL DEFAULT 0,
-  games_played INT DEFAULT 0,
-  biggest_win DECIMAL DEFAULT 0,
-  biggest_loss DECIMAL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Games table
-CREATE TABLE games (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  date DATE NOT NULL,
-  time TIME NOT NULL,
-  buy_in DECIMAL NOT NULL,
-  venue TEXT NOT NULL,
-  status TEXT NOT NULL,
-  notes TEXT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Enable real-time
-ALTER PUBLICATION supabase_realtime ADD TABLE players;
-ALTER PUBLICATION supabase_realtime ADD TABLE games;
-```
-
-3. Add environment variables
-4. The app will automatically use Supabase instead of local storage
+Google OAuth is configured via the Supabase Dashboard → Authentication → Providers. Make sure both `https://pokerbros.xyz/auth/callback` and any preview/`www` variants are in the allowed redirect URLs.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+This started as a personal project for monthly home games, but PRs are welcome — bug fixes, polish, new features. Open an issue first for anything substantial.
 
 ## License
 
-MIT License - feel free to use this project for your own poker nights!
-
-## Acknowledgments
-
-Built with ❤️ for poker enthusiasts who want to focus on the game, not the logistics.
+[MIT](./LICENSE) — use it for your own poker night.

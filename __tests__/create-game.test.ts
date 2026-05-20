@@ -113,7 +113,7 @@ describe('createGame', () => {
     };
 
     mockCreateSupabaseServerClient.mockResolvedValue(mockSupabase as never);
-    mockRequireAdmin.mockResolvedValue({ id: 'admin-1', email: 'you@example.com' } as never);
+    mockRequireAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' } as never);
   });
 
   it('returns success and schedules notifications after creating the game', async () => {
