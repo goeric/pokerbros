@@ -40,3 +40,7 @@ supabase/.temp/
 supabase/.branches/
 supabase/seed.sql
 *.ics
+
+# editor/agent config (per-machine, not shared)
+.blackboxcli/
+.claude/settings.local.json
