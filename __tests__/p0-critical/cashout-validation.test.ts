@@ -6,16 +6,28 @@
  * - Incorrect profit/loss calculations
  * - Wrong player stats (totalIn, totalOut, biggestWin, biggestLoss)
  * - Games marked complete with unbalanced books
+ * - Double-counted stats from re-running finalization
+ *
+ * finalizeGameResults now:
+ * 1. Refuses to re-finalize an already-completed game (pre-check).
+ * 2. Validates the books balance BEFORE writing anything.
+ * 3. Writes each player's cashOut/profit (absolute, idempotent writes).
+ * 4. Atomically claims the game via a conditional status update so two
+ *    concurrent finalizes can never both succeed.
+ * 5. Recomputes each participant's aggregate stats FROM SOURCE (see
+ *    recomputePlayerStats / player-stats-recompute.test.ts), which can never
+ *    double-count.
  *
  * Priority: P0.1
- * Estimated Tests: 10
  */
 
 import { finalizeGameResults } from '@/app/game/[id]/cashout/actions'
 import { createSupabaseServerClient, requireAdmin } from '@/lib/auth-helpers'
+import { recomputePlayerStats } from '@/lib/player-stats'
 
 // Mock dependencies
 jest.mock('@/lib/auth-helpers')
+jest.mock('@/lib/player-stats')
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
 }))
@@ -29,673 +41,259 @@ jest.mock('next/navigation', () => ({
 
 const mockRequireAdmin = requireAdmin as jest.MockedFunction<typeof requireAdmin>
 const mockCreateSupabaseServerClient = createSupabaseServerClient as jest.MockedFunction<typeof createSupabaseServerClient>
+const mockRecomputePlayerStats = recomputePlayerStats as jest.MockedFunction<typeof recomputePlayerStats>
 
 describe('P0.1: Cash-out Validation (Critical)', () => {
   let mockSupabase: any
 
   // Use proper UUIDs for testing
+  const GAME_ID = '323e4567-e89b-12d3-a456-426614174001'
   const PLAYER_1_ID = '123e4567-e89b-12d3-a456-426614174001'
   const PLAYER_2_ID = '123e4567-e89b-12d3-a456-426614174002'
   const GAME_PLAYER_1_ID = '223e4567-e89b-12d3-a456-426614174001'
   const GAME_PLAYER_2_ID = '223e4567-e89b-12d3-a456-426614174002'
 
-  // Helper: mock for games table that handles both status check (select) and status update
-  const createGamesMock = (overrideUpdate?: jest.Mock) => ({
+  // Mock for the `games` table: handles both the status pre-check (select) and
+  // the atomic finalization claim (update ... neq ... select).
+  const createGamesMock = (
+    {
+      status = 'in_progress',
+      claimRows = [{ id: GAME_ID }],
+      onClaim,
+    }: { status?: string | null; claimRows?: any[]; onClaim?: (data: any) => void } = {}
+  ) => ({
     select: jest.fn().mockReturnValue({
       eq: jest.fn().mockReturnValue({
-        single: jest.fn().mockResolvedValue({ data: { status: 'in_progress' }, error: null }),
+        single: jest.fn().mockResolvedValue({ data: status === null ? null : { status }, error: null }),
       }),
     }),
-    update: overrideUpdate ?? jest.fn().mockReturnThis(),
-    eq: jest.fn().mockResolvedValue({ data: null, error: null }),
+    update: jest.fn((data: any) => {
+      if (onClaim) onClaim(data)
+      return {
+        eq: jest.fn().mockReturnValue({
+          neq: jest.fn().mockReturnValue({
+            select: jest.fn().mockResolvedValue({ data: claimRows, error: null }),
+          }),
+        }),
+      }
+    }),
+  })
+
+  // Mock for the `game_players` table: handles the participant fetch
+  // (select ... eq) and the per-player cashOut/profit writes (update ... eq).
+  const createGamePlayersMock = (
+    gamePlayers: any[],
+    capture?: { profits?: Record<string, number>; cashOuts?: Record<string, number>; updateSpy?: jest.Mock }
+  ) => ({
+    select: jest.fn().mockReturnValue({
+      eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
+    }),
+    update: jest.fn((data: any) => {
+      capture?.updateSpy?.(data)
+      return {
+        eq: jest.fn((field: string, value: any) => {
+          if (field === 'id') {
+            if (capture?.profits && data.profit !== undefined) capture.profits[value] = data.profit
+            if (capture?.cashOuts && data.cashOut !== undefined) capture.cashOuts[value] = data.cashOut
+          }
+          return Promise.resolve({ data: null, error: null })
+        }),
+      }
+    }),
   })
 
   beforeEach(() => {
     jest.clearAllMocks()
 
-    // Mock admin authorization
-    mockRequireAdmin.mockResolvedValue({
-      id: 'admin-id',
-      email: 'admin@test.com',
-    } as any)
+    mockRequireAdmin.mockResolvedValue({ id: 'admin-id', email: 'admin@test.com' } as any)
+    mockRecomputePlayerStats.mockResolvedValue({})
 
-    // Create mock Supabase client
-    mockSupabase = {
-      from: jest.fn(),
-      auth: {
-        getSession: jest.fn(),
-      },
-    }
-
+    mockSupabase = { from: jest.fn(), auth: { getSession: jest.fn() } }
     mockCreateSupabaseServerClient.mockResolvedValue(mockSupabase)
   })
 
   describe('Total validation', () => {
     test('rejects when total in != total out', async () => {
-      // Setup: Game with $200 total in, attempting $210 total out (difference > 0.01)
       const gamePlayers = [
         { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
         { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [100] },
       ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
 
       mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-          }
-        }
+        if (table === 'games') return createGamesMock()
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers)
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 110, [PLAYER_2_ID]: 100 } // Total out = $210, total in = $200
+      const cashOuts = { [PLAYER_1_ID]: 110, [PLAYER_2_ID]: 100 } // out $210, in $200
 
-      const result = await finalizeGameResults('game-1', cashOuts)
+      const result = await finalizeGameResults(GAME_ID, cashOuts)
 
-      expect(result).toEqual({
-        error: expect.stringContaining("Totals don't match"),
-      })
+      expect(result).toEqual({ error: expect.stringContaining("Totals don't match") })
       expect(result.error).toContain('200.00')
       expect(result.error).toContain('210.00')
+      // Nothing should be finalized when the books don't balance.
+      expect(mockRecomputePlayerStats).not.toHaveBeenCalled()
     })
 
     test('accepts when difference is within 0.01 tolerance', async () => {
-      // Setup: Game with $200 total in, $200.005 total out (rounds to $200.01, within tolerance)
       const gamePlayers = [
         { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
         { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [100] },
       ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
 
       mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
+        if (table === 'games') return createGamesMock()
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers)
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 100, [PLAYER_2_ID]: 100.01 } // Total out = $200.01, within 0.01 tolerance
+      const cashOuts = { [PLAYER_1_ID]: 100, [PLAYER_2_ID]: 100.01 } // within 0.01 tolerance
 
-      // Should not throw or return error
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
+      await expect(finalizeGameResults(GAME_ID, cashOuts)).rejects.toThrow('NEXT_REDIRECT')
     })
   })
 
   describe('Profit calculations', () => {
-    test('calculates profit correctly for winner (single buy-in)', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Loser (to balance)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
+    const expectProfit = async (gamePlayers: any[], cashOuts: Record<string, number>, gamePlayerId: string, expected: number) => {
       const profits: Record<string, number> = {}
-
       mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn((data: any) => {
-              const currentGamePlayerId: string | null = null
-              if (data.profit !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      profits[value] = data.profit
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
+        if (table === 'games') return createGamesMock()
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers, { profits })
         return { select: jest.fn() }
       })
 
-      const cashOuts = {
-        [PLAYER_1_ID]: 150, // $150 out - $100 in = +$50 profit
-        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
-      } // Total: $150 in, $150 out ✓
+      await expect(finalizeGameResults(GAME_ID, cashOuts)).rejects.toThrow('NEXT_REDIRECT')
+      expect(profits[gamePlayerId]).toBe(expected)
+    }
 
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(profits[GAME_PLAYER_1_ID]).toBe(50)
+    test('calculates profit correctly for winner (single buy-in)', async () => {
+      await expectProfit(
+        [
+          { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+          { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },
+        ],
+        { [PLAYER_1_ID]: 150, [PLAYER_2_ID]: 0 }, // total $150 in / $150 out
+        GAME_PLAYER_1_ID,
+        50
+      )
     })
 
     test('calculates profit correctly for winner (multiple rebuys)', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 100, 50] }, // $250 total in - Winner
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [100, 50] },      // $150 total in - Loser
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const profits: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.profit !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      profits[value] = data.profit
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 400, // $400 out - $250 in = +$150 profit
-        [PLAYER_2_ID]: 0,   // $0 out - $150 in = -$150 loss
-      } // Total: $400 in, $400 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(profits[GAME_PLAYER_1_ID]).toBe(150)
+      await expectProfit(
+        [
+          { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 100, 50] }, // $250 in
+          { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [100, 50] }, // $150 in
+        ],
+        { [PLAYER_1_ID]: 400, [PLAYER_2_ID]: 0 }, // total $400 in / $400 out
+        GAME_PLAYER_1_ID,
+        150
+      )
     })
 
     test('calculates profit correctly for loser', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Loser
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (to balance)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const profits: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.profit !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      profits[value] = data.profit
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 50,  // $50 out - $100 in = -$50 loss
-        [PLAYER_2_ID]: 100, // $100 out - $50 in = +$50 profit
-      } // Total: $150 in, $150 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(profits[GAME_PLAYER_1_ID]).toBe(-50)
+      await expectProfit(
+        [
+          { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+          { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },
+        ],
+        { [PLAYER_1_ID]: 50, [PLAYER_2_ID]: 100 }, // total $150 in / $150 out
+        GAME_PLAYER_1_ID,
+        -50
+      )
     })
 
     test('handles zero cash-out (busted player)', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Busted player
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (gets all chips)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const profits: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.profit !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      profits[value] = data.profit
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 0,   // Busted - $0 out - $100 in = -$100 loss
-        [PLAYER_2_ID]: 150, // $150 out - $50 in = +$100 profit
-      } // Total: $150 in, $150 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(profits[GAME_PLAYER_1_ID]).toBe(-100)
+      await expectProfit(
+        [
+          { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+          { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },
+        ],
+        { [PLAYER_1_ID]: 0, [PLAYER_2_ID]: 150 }, // total $150 in / $150 out
+        GAME_PLAYER_1_ID,
+        -100
+      )
     })
   })
 
-  describe('Player stats updates', () => {
-    test('updates player biggestWin stat when new win exceeds previous', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Loser (to balance)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 30, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const biggestWins: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.biggestWin !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      biggestWins[value] = data.biggestWin
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 150, // $150 out - $100 in = +$50 profit (should update biggestWin from 30 to 50)
-        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
-      } // Total: $150 in, $150 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(biggestWins[PLAYER_1_ID]).toBe(50)
-    })
-
-    test('does not update biggestWin when new win is lower', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Winner
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [20] },  // Loser (to balance)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 100, biggestLoss: 0 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const biggestWins: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.biggestWin !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      biggestWins[value] = data.biggestWin
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 120, // $120 out - $100 in = +$20 profit (should keep biggestWin at 100)
-        [PLAYER_2_ID]: 0,   // $0 out - $20 in = -$20 loss
-      } // Total: $120 in, $120 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(biggestWins[PLAYER_1_ID]).toBe(100)
-    })
-
-    test('updates player biggestLoss stat when new loss exceeds previous', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }, // Loser
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },  // Winner (to balance)
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: -20 },
-        { id: PLAYER_2_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      const biggestLosses: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.biggestLoss !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      biggestLosses[value] = data.biggestLoss
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 50,  // $50 out - $100 in = -$50 loss (should update biggestLoss from -20 to -50)
-        [PLAYER_2_ID]: 100, // $100 out - $50 in = +$50 profit
-      } // Total: $150 in, $150 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(biggestLosses[PLAYER_1_ID]).toBe(-50)
-    })
-
-    test('increments gamesPlayed counter', async () => {
+  describe('Player stats recompute', () => {
+    test('recomputes aggregate stats from source for each participant', async () => {
       const gamePlayers = [
         { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
+        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },
       ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 200, totalOut: 180, gamesPlayed: 5, biggestWin: 50, biggestLoss: -30 },
-      ]
-
-      let capturedGamesPlayed: number | null = null
 
       mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn((data: any) => {
-              capturedGamesPlayed = data.gamesPlayed
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
+        if (table === 'games') return createGamesMock()
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers)
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 100 }
+      const cashOuts = { [PLAYER_1_ID]: 150, [PLAYER_2_ID]: 0 }
 
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
+      await expect(finalizeGameResults(GAME_ID, cashOuts)).rejects.toThrow('NEXT_REDIRECT')
 
-      expect(capturedGamesPlayed).toBe(6) // 5 + 1 = 6
-    })
-
-    test('updates totalIn and totalOut correctly', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100, 50] }, // $150 total buy-in - Winner
-        { id: GAME_PLAYER_2_ID, playerId: PLAYER_2_ID, buyIns: [50] },      // $50 total buy-in - Loser
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 200, totalOut: 180, gamesPlayed: 2, biggestWin: 50, biggestLoss: -30 },
-        { id: PLAYER_2_ID, totalIn: 100, totalOut: 90, gamesPlayed: 1, biggestWin: 20, biggestLoss: -10 },
-      ]
-
-      const totalIns: Record<string, number> = {}
-      const totalOuts: Record<string, number> = {}
-
-      mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn((data: any) => {
-              if (data.totalIn !== undefined && data.totalOut !== undefined) {
-                return {
-                  eq: jest.fn((field: string, value: any) => {
-                    if (field === 'id') {
-                      totalIns[value] = data.totalIn
-                      totalOuts[value] = data.totalOut
-                    }
-                    return Promise.resolve({ data: null, error: null })
-                  }),
-                }
-              }
-              return {
-                eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-              }
-            }),
-          }
-        }
-        if (table === 'games') {
-          return createGamesMock()
-        }
-        return { select: jest.fn() }
-      })
-
-      const cashOuts = {
-        [PLAYER_1_ID]: 200, // $200 out - $150 in = +$50 profit
-        [PLAYER_2_ID]: 0,   // $0 out - $50 in = -$50 loss
-      } // Total: $200 in, $200 out ✓
-
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
-
-      expect(totalIns[PLAYER_1_ID]).toBe(350) // 200 + 150 = 350
-      expect(totalOuts[PLAYER_1_ID]).toBe(380) // 180 + 200 = 380
+      // Recompute (not additive adjustment) is invoked once per distinct player.
+      expect(mockRecomputePlayerStats).toHaveBeenCalledTimes(2)
+      expect(mockRecomputePlayerStats).toHaveBeenCalledWith(mockSupabase, PLAYER_1_ID)
+      expect(mockRecomputePlayerStats).toHaveBeenCalledWith(mockSupabase, PLAYER_2_ID)
     })
   })
 
-  describe('Game status', () => {
+  describe('Game status / double-finalize protection', () => {
     test('marks game as completed after successful validation', async () => {
-      const gamePlayers = [
-        { id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] },
-      ]
-      const players = [
-        { id: PLAYER_1_ID, totalIn: 0, totalOut: 0, gamesPlayed: 0, biggestWin: 0, biggestLoss: 0 },
-      ]
-
-      let gameUpdateCalled = false
+      const gamePlayers = [{ id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }]
+      let claimedCompleted = false
 
       mockSupabase.from.mockImplementation((table: string) => {
-        if (table === 'game_players') {
-          return {
-            select: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: gamePlayers, error: null }),
-            update: jest.fn().mockReturnThis(),
-          }
-        }
-        if (table === 'players') {
-          return {
-            select: jest.fn().mockResolvedValue({ data: players, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-          }
-        }
         if (table === 'games') {
-          return createGamesMock(jest.fn((data: any) => {
-            if (data.status === 'completed') {
-              gameUpdateCalled = true
-            }
-            return {
-              eq: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }
-          }))
+          return createGamesMock({
+            onClaim: (data: any) => {
+              if (data.status === 'completed') claimedCompleted = true
+            },
+          })
         }
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers)
         return { select: jest.fn() }
       })
 
-      const cashOuts = { [PLAYER_1_ID]: 100 }
+      await expect(finalizeGameResults(GAME_ID, { [PLAYER_1_ID]: 100 })).rejects.toThrow('NEXT_REDIRECT')
+      expect(claimedCompleted).toBe(true)
+    })
 
-      await expect(finalizeGameResults('game-1', cashOuts)).rejects.toThrow('NEXT_REDIRECT')
+    test('refuses to re-finalize an already-completed game (no writes)', async () => {
+      const gamePlayers = [{ id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }]
+      const updateSpy = jest.fn()
 
-      expect(gameUpdateCalled).toBe(true)
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'games') return createGamesMock({ status: 'completed' })
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers, { updateSpy })
+        return { select: jest.fn() }
+      })
+
+      const result = await finalizeGameResults(GAME_ID, { [PLAYER_1_ID]: 100 })
+
+      expect(result).toEqual({ error: 'Game has already been finalized.' })
+      expect(updateSpy).not.toHaveBeenCalled() // no cashOut/profit overwrite
+      expect(mockRecomputePlayerStats).not.toHaveBeenCalled() // no stat changes
+    })
+
+    test('aborts when the atomic claim is lost (concurrent finalize)', async () => {
+      const gamePlayers = [{ id: GAME_PLAYER_1_ID, playerId: PLAYER_1_ID, buyIns: [100] }]
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        // Pre-check passes (in_progress) but the conditional claim updates 0 rows
+        // because another request finalized it first.
+        if (table === 'games') return createGamesMock({ status: 'in_progress', claimRows: [] })
+        if (table === 'game_players') return createGamePlayersMock(gamePlayers)
+        return { select: jest.fn() }
+      })
+
+      const result = await finalizeGameResults(GAME_ID, { [PLAYER_1_ID]: 100 })
+
+      expect(result).toEqual({ error: 'Game has already been finalized.' })
+      // Stats must NOT be recomputed by the loser of the race.
+      expect(mockRecomputePlayerStats).not.toHaveBeenCalled()
     })
   })
 })

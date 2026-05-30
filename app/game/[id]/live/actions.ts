@@ -23,13 +23,19 @@ export async function addRebuy(gameId: string, gamePlayerId: string, buyInAmount
     // Filtered by gameId to prevent cross-game mutations
     const { data: gamePlayer } = await supabase
       .from('game_players')
-      .select('buyIns')
+      .select('buyIns, cashOut')
       .eq('id', gamePlayerId)
       .eq('gameId', gameId)
       .single();
 
     if (!gamePlayer) {
       return handleServerError(new Error('Game player not found'), 'ERR_REBUY_NO_PLAYER', 'Game player not found');
+    }
+
+    // A player who has cashed out has left the table; they cannot rebuy.
+    // The UI hides the button, but enforce the invariant server-side too.
+    if (gamePlayer.cashOut > 0) {
+      return { error: 'This player has cashed out and cannot rebuy.' };
     }
 
     const updatedBuyIns = [...gamePlayer.buyIns, buyInAmount];
@@ -134,7 +140,12 @@ export async function cashOutEarly(gameId: string, gamePlayerId: string, cashOut
 
     await requireAdmin(supabase);
 
-    const result = EarlyCashOutSchema.safeParse({ gameId, gamePlayerId, cashOutAmount });
+    // Round to whole cents before validating so values like 12.555 aren't
+    // spuriously rejected by the schema's multipleOf(0.01) check. Matches the
+    // rounding the final cash-out page already applies.
+    const roundedCashOut = Math.round(cashOutAmount * 100) / 100;
+
+    const result = EarlyCashOutSchema.safeParse({ gameId, gamePlayerId, cashOutAmount: roundedCashOut });
     if (!result.success) {
       return formatZodError(result.error);
     }
@@ -160,7 +171,7 @@ export async function cashOutEarly(gameId: string, gamePlayerId: string, cashOut
 
     const { error } = await supabase
       .from('game_players')
-      .update({ cashOut: cashOutAmount })
+      .update({ cashOut: roundedCashOut })
       .eq('id', gamePlayerId);
 
     if (error) {
