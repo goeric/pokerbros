@@ -365,6 +365,13 @@ describe('P0.4: Authorization (Critical)', () => {
             })),
           }
         }
+        if (table === 'game_players') {
+          // No participants -> nothing to recompute after delete.
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockResolvedValue({ data: [], error: null }),
+          }
+        }
         return { select: jest.fn() }
       })
 

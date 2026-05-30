@@ -56,7 +56,9 @@ export function calculateTotalPot(gamePlayers: GamePlayer[]): number {
 }
 
 export function calculateTotalRebuys(gamePlayers: GamePlayer[]): number {
-  return gamePlayers.reduce((sum, gp) => sum + gp.buyIns.length - 1, 0);
+  // Rebuys = buy-ins beyond the initial one. Guard against an empty buyIns
+  // array so a malformed row can't contribute a negative count.
+  return gamePlayers.reduce((sum, gp) => sum + Math.max(0, gp.buyIns.length - 1), 0);
 }
 
 /**

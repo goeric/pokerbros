@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
 import { CashOutSchema, formatZodError } from '@/lib/validation';
+import { recomputePlayerStats } from '@/lib/player-stats';
+import { logger } from '@/lib/logger';
 
 export async function finalizeGameResults(gameId: string, cashOuts: Record<string, number>) {
   try {
@@ -20,7 +22,9 @@ export async function finalizeGameResults(gameId: string, cashOuts: Record<strin
 
     const validCashOuts = result.data;
 
-    // Guard against double finalization (additive stats would be corrupted)
+    // Fast guard against re-finalizing an already-completed game. This prevents
+    // overwriting a finished game's recorded results with new client values.
+    // (The atomic claim below additionally guards the rare concurrent race.)
     const { data: currentGame, error: statusError } = await supabase
       .from('games')
       .select('status')
@@ -36,25 +40,21 @@ export async function finalizeGameResults(gameId: string, cashOuts: Record<strin
     }
 
     // Fetch game_players
-    const { data: gamePlayers } = await supabase.from('game_players').select('*').eq('gameId', gameId);
+    const { data: gamePlayers, error: gamePlayersError } = await supabase
+      .from('game_players')
+      .select('*')
+      .eq('gameId', gameId);
 
-    if (!gamePlayers) {
-      return handleServerError(new Error('Game players not found'), 'ERR_CASHOUT_NO_PLAYERS', 'Game players not found.');
+    if (gamePlayersError || !gamePlayers) {
+      return handleServerError(gamePlayersError || new Error('Game players not found'), 'ERR_CASHOUT_NO_PLAYERS', 'Game players not found.');
     }
 
-    // Fetch all players
-    const { data: players } = await supabase.from('players').select('*');
-
-    if (!players) {
-      return handleServerError(new Error('Players not found'), 'ERR_CASHOUT_NO_PLAYERS_TABLE', 'Players not found.');
-    }
-
-    // Validate totals
+    // Validate totals BEFORE mutating anything.
     const totalIn = gamePlayers.reduce(
       (sum, gp) => sum + gp.buyIns.reduce((total: number, buyIn: number) => total + buyIn, 0),
       0
     );
-    const totalOut = Object.values(validCashOuts).reduce((sum, amount) => sum + amount, 0);
+    const totalOut = gamePlayers.reduce((sum, gp) => sum + (validCashOuts[gp.playerId] || 0), 0);
     const difference = totalOut - totalIn;
 
     if (Math.abs(difference) > 0.01) {
@@ -63,32 +63,53 @@ export async function finalizeGameResults(gameId: string, cashOuts: Record<strin
       };
     }
 
-    // Update game players with cash-outs and profits
+    // Write each player's cash-out and profit. These are absolute (idempotent)
+    // writes, so the step is safe to retry until the game is claimed below.
     for (const gamePlayer of gamePlayers) {
       const cashOut = validCashOuts[gamePlayer.playerId] || 0;
       const totalBuyIn = gamePlayer.buyIns.reduce((sum: number, buyIn: number) => sum + buyIn, 0);
       const profit = cashOut - totalBuyIn;
 
-      await supabase.from('game_players').update({ cashOut, profit }).eq('id', gamePlayer.id);
+      const { error: updateError } = await supabase
+        .from('game_players')
+        .update({ cashOut, profit })
+        .eq('id', gamePlayer.id);
 
-      // Update player stats
-      const player = players.find((p) => p.id === gamePlayer.playerId);
-      if (player) {
-        await supabase
-          .from('players')
-          .update({
-            totalIn: player.totalIn + totalBuyIn,
-            totalOut: player.totalOut + cashOut,
-            gamesPlayed: player.gamesPlayed + 1,
-            biggestWin: Math.max(player.biggestWin, profit > 0 ? profit : 0),
-            biggestLoss: Math.min(player.biggestLoss, profit < 0 ? profit : 0),
-          })
-          .eq('id', gamePlayer.playerId);
+      if (updateError) {
+        return handleServerError(updateError, 'ERR_CASHOUT_UPDATE_PLAYER', 'Failed to record cash-out. Please try again.');
       }
     }
 
-    // Update game status
-    await supabase.from('games').update({ status: 'completed' }).eq('id', gameId);
+    // Atomically claim finalization: flip to completed only if it is not already
+    // completed. A single-row conditional update is atomic, so two concurrent
+    // finalizes can never both succeed — eliminating the double-count corruption.
+    const { data: claimed, error: claimError } = await supabase
+      .from('games')
+      .update({ status: 'completed' })
+      .eq('id', gameId)
+      .neq('status', 'completed')
+      .select('id');
+
+    if (claimError) {
+      return handleServerError(claimError, 'ERR_CASHOUT_CLAIM', 'Unable to finalize the game. Please try again.');
+    }
+
+    if (!claimed || claimed.length === 0) {
+      return { error: 'Game has already been finalized.' };
+    }
+
+    // Recompute aggregate stats from source for every participant. Idempotent:
+    // re-running this can never double-count, and it correctly reflects this
+    // game now that it is completed.
+    const affectedPlayerIds = [...new Set(gamePlayers.map((gp) => gp.playerId))];
+    for (const playerId of affectedPlayerIds) {
+      const { error: statError } = await recomputePlayerStats(supabase, playerId);
+      if (statError) {
+        // The per-game results are already correct; aggregate stats are
+        // eventually consistent. Log rather than failing the finalize.
+        logger.error('[finalizeGameResults] stat recompute failed', { gameId, playerId, error: statError });
+      }
+    }
 
     revalidatePath(`/game/${gameId}`);
     redirect(`/game/${gameId}/results`);

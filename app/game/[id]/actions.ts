@@ -14,6 +14,8 @@ import WaitlistPromotion from '@/emails/templates/WaitlistPromotion';
 import GameUpdated from '@/emails/templates/GameUpdated';
 import GameCancelled from '@/emails/templates/GameCancelled';
 import { formatDate, formatTime, formatPlayerName } from '@/lib/utils';
+import { recomputePlayerStats } from '@/lib/player-stats';
+import { logger } from '@/lib/logger';
 import { Game, Location, Player } from '@/types';
 
 export async function addRSVP(gameId: string, playerId: string) {
@@ -490,10 +492,28 @@ export async function deleteGame(gameId: string) {
       .eq('gameId', gameId)
       .eq('status', 'confirmed');
 
+    // Capture participants BEFORE deletion. Deleting the game cascade-removes
+    // its game_players, so a completed game's contribution must be reversed out
+    // of each player's lifetime aggregate stats afterwards.
+    const { data: affectedGamePlayers } = await supabase
+      .from('game_players')
+      .select('playerId')
+      .eq('gameId', gameId);
+
+    const affectedPlayerIds = [...new Set((affectedGamePlayers ?? []).map((gp) => gp.playerId))];
+
     const { error } = await supabase.from('games').delete().eq('id', gameId);
 
     if (error) {
       return handleServerError(error, 'ERR_GAME_DELETE', 'Failed to delete game. Please try again.');
+    }
+
+    // Recompute stats from source for everyone who played the deleted game.
+    for (const playerId of affectedPlayerIds) {
+      const { error: statError } = await recomputePlayerStats(supabase, playerId);
+      if (statError) {
+        logger.error('[deleteGame] stat recompute failed', { gameId, playerId, error: statError });
+      }
     }
 
     // Send cancellation email to all confirmed players
