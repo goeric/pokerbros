@@ -10,12 +10,12 @@ interface ResultsPageProps {
 export default async function ResultsPage({ params }: ResultsPageProps) {
   const { id: gameId } = await params;
 
-  // Get admin status server-side
-  const { isAdmin } = await getServerAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Fetch all data in parallel
-  const [gameRes, gamePlayersRes, playersRes] = await Promise.all([
+  // Auth is fetched alongside the page data, not before it. Awaiting it first
+  // held every query behind an auth round trip.
+  const [{ isAdmin }, gameRes, gamePlayersRes, playersRes] = await Promise.all([
+    getServerAuth(),
     supabase.from('games').select('*').eq('id', gameId).single(),
     supabase.from('game_players').select('*').eq('gameId', gameId).order('profit', { ascending: false }),
     supabase.from('players').select('*'),

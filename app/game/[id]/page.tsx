@@ -14,12 +14,12 @@ export default async function GameDetailPage({ params, searchParams }: GamePageP
   const { id: gameId } = await params;
   const urlParams = await searchParams;
 
-  // Get auth state server-side
-  const { user, isAdmin } = await getServerAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Fetch all data in parallel on the server
-  const [gameRes, rsvpsRes, playersRes] = await Promise.all([
+  // Auth is fetched alongside the page data, not before it. Awaiting it first
+  // held every query behind an auth round trip.
+  const [{ user, isAdmin }, gameRes, rsvpsRes, playersRes] = await Promise.all([
+    getServerAuth(),
     supabase.from('games').select('*').eq('id', gameId).single(),
     supabase.from('rsvps').select('*').eq('gameId', gameId),
     supabase.from('players').select('*'),
