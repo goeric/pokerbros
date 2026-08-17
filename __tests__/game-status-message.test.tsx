@@ -29,6 +29,7 @@ const baseGame = {
   buyIn: 100,
   venue: 'Poker Room',
   status: 'in_progress' as const,
+  calendar_sequence: 0,
   createdAt: '2026-04-01T00:00:00.000Z',
 };
 

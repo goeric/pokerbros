@@ -42,9 +42,13 @@ function addTimezoneToIcs(icsContent: string, timezone: string): string {
  *
  * Key features:
  * - Same UID = updates same event in calendar apps
- * - SEQUENCE increments on updates
  * - STATUS: CONFIRMED for invites, CANCELLED for cancellations
  * - 4-hour duration from game start time
+ *
+ * `sequence` must come from `nextCalendarSequence()` — `games.calendar_sequence`
+ * is the single source of truth for how far this game's invite has advanced.
+ * Passing a constant is what caused repeat reschedules to be ignored by calendar
+ * apps; see `20260816120000_add_calendar_sequence_to_games.sql`.
  */
 export function generateGameIcs({
   game,
@@ -89,7 +93,7 @@ export function generateGameIcs({
       description,
       location: location.address,
       uid: `game-${game.id}@pokerbros.xyz`, // Same UID = updates same event
-      sequence, // Increment on updates
+      sequence,
       status: status === 'CONFIRMED' ? 'CONFIRMED' : 'CANCELLED',
       organizer: {
         name: 'PokerBros',
@@ -123,13 +127,4 @@ export function generateGameIcs({
     console.error('[ICS] Error generating calendar event:', error);
     return null;
   }
-}
-
-/**
- * Get the next sequence number for a game update
- * In practice, you might store this in the database per player/game
- * For now, we'll increment based on update operations
- */
-export function getNextSequence(currentSequence: number = 0): number {
-  return currentSequence + 1;
 }

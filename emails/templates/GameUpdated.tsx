@@ -15,6 +15,13 @@ interface GameUpdatedProps {
   buyIn: number;
   notes?: string;
   cancelRsvpUrl?: string;
+  /**
+   * True when the recipient holds a waitlist spot rather than a seat. Required,
+   * not optional: it must stay in lockstep with whether `sendEmail` attached an
+   * .ics (see `sendGameUpdatedNotifications`), and a forgotten prop would promise
+   * a calendar update that never happened.
+   */
+  waitlisted: boolean;
 }
 
 export default function GameUpdated({
@@ -28,6 +35,7 @@ export default function GameUpdated({
   buyIn,
   notes,
   cancelRsvpUrl,
+  waitlisted,
 }: GameUpdatedProps) {
   const gameUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/game/${gameId}`;
 
@@ -54,12 +62,18 @@ export default function GameUpdated({
         notes={notes}
       />
 
+      {/* Waitlisted players were never sent an invite, so there is no calendar
+          event of theirs to update — promise them one only if a seat opens. */}
       <Text style={paragraph}>
-        Your calendar has been updated automatically.
+        {waitlisted
+          ? "You're still on the waitlist for this game. We'll send you a calendar invite if a seat opens up."
+          : 'Your calendar has been updated automatically.'}
       </Text>
 
       {cancelRsvpUrl && (
-        <Button href={cancelRsvpUrl}>Cancel my RSVP</Button>
+        <Button href={cancelRsvpUrl}>
+          {waitlisted ? 'Leave the waitlist' : 'Cancel my RSVP'}
+        </Button>
       )}
 
       {!cancelRsvpUrl && (

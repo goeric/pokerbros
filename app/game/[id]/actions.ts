@@ -1,12 +1,15 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { createSupabaseServerClient, requireAdmin, handleServerError } from '@/lib/auth-helpers';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { RSVPSchema, GameSchema, formatZodError } from '@/lib/validation';
-import { MAX_SEATS } from '@/lib/constants';
+import { MAX_SEATS, NOTIFIABLE_RSVP_STATUSES } from '@/lib/constants';
 import { sendEmail } from '@/lib/email/send-email';
 import { shouldSendNotification } from '@/lib/email/check-preferences';
 import { generateGameIcs } from '@/lib/email/generate-ics';
+import { nextCalendarSequence } from '@/lib/email/calendar-sequence';
 import { createEmailActionToken } from '@/lib/email/action-tokens';
 import RsvpConfirmation from '@/emails/templates/RsvpConfirmation';
 import RsvpCancellation from '@/emails/templates/RsvpCancellation';
@@ -112,7 +115,7 @@ export async function addRSVP(gameId: string, playerId: string) {
             location,
             playerEmail: player.email,
             status: 'CONFIRMED',
-            sequence: 0,
+            sequence: await nextCalendarSequence(supabase, game as Game),
           });
 
           // Send email with calendar invite
@@ -220,13 +223,15 @@ export async function cancelRSVP(gameId: string, playerId: string) {
         action: 'rsvp',
       });
 
-      // Generate calendar cancellation
+      // Generate calendar cancellation. A CANCEL only withdraws the event if its
+      // SEQUENCE beats the invite the player is holding, which climbs with every
+      // reschedule — so it has to come from the shared counter, not a constant.
       const icsContent = generateGameIcs({
         game: game as Game,
         location,
         playerEmail: player.email,
         status: 'CANCELLED',
-        sequence: 1, // Increment sequence for update
+        sequence: await nextCalendarSequence(supabase, game as Game),
       });
 
       // Send cancellation email (check preference)
@@ -280,7 +285,7 @@ export async function cancelRSVP(gameId: string, playerId: string) {
               location,
               playerEmail: promotedPlayer.email,
               status: 'CONFIRMED',
-              sequence: 0,
+              sequence: await nextCalendarSequence(supabase, game as Game),
             });
 
             // Send waitlist promotion email (check preference)
@@ -334,6 +339,191 @@ export async function startGame(gameId: string) {
   }
 }
 
+/**
+ * Human-readable summary of what an admin changed about a game.
+ * An empty list means the edit was a no-op and nobody needs to hear about it.
+ */
+function describeGameChanges({
+  oldGame,
+  oldLocation,
+  newGame,
+  newLocation,
+}: {
+  oldGame: Game;
+  oldLocation: Location | null;
+  newGame: { date: string; time: string; buyIn: number; location_id: string; notes?: string };
+  newLocation: Location;
+}): string[] {
+  const changes: string[] = [];
+
+  if (newGame.date !== oldGame.date) {
+    changes.push(`Date changed: ${formatDate(oldGame.date)} → ${formatDate(newGame.date)}`);
+  }
+  if (newGame.time !== oldGame.time) {
+    changes.push(`Time changed: ${formatTime(oldGame.time)} → ${formatTime(newGame.time)}`);
+  }
+  if (newGame.location_id !== oldGame.location_id) {
+    changes.push(`Location changed: ${oldLocation?.name ?? 'TBD'} → ${newLocation.name}`);
+  }
+  if (newGame.buyIn !== oldGame.buyIn) {
+    changes.push(`Buy-in changed: $${oldGame.buyIn} → $${newGame.buyIn}`);
+  }
+  // Notes are stored as NULL when blank but arrive as '', so compare normalized
+  // values — otherwise saving an untouched form reports a phantom "Notes updated".
+  if ((newGame.notes || '') !== (oldGame.notes || '')) {
+    changes.push('Notes updated');
+  }
+
+  return changes;
+}
+
+/**
+ * Emails every player holding a seat or a waitlist spot — excluding those with no
+ * address on file or who have opted out of `game_updated` — that the game changed.
+ *
+ * Confirmed players get a fresh .ics so their existing calendar event moves.
+ * Waitlisted players get the email only: they hold no live invite for this game
+ * (`addRSVP` attaches one only for confirmed seats, and a cancellation withdraws
+ * it), so a CONFIRMED .ics would put a game they aren't seated for on their
+ * calendar. `emails/templates/GameUpdated.tsx` renders the matching copy.
+ */
+async function sendGameUpdatedNotifications({
+  supabase,
+  game,
+  location,
+  changes,
+}: {
+  supabase: SupabaseClient;
+  game: Game;
+  location: Location;
+  changes: string[];
+}): Promise<void> {
+  const { data: rsvps, error } = await supabase
+    .from('rsvps')
+    .select('*, players(*)')
+    .eq('gameId', game.id)
+    .in('status', [...NOTIFIABLE_RSVP_STATUSES]);
+
+  if (error) {
+    // The write already committed and the response already shipped, so there is
+    // nothing to fail back to — log with enough context to reconstruct it later.
+    logger.error(
+      `[ERR_GAME_UPDATE_NOTIFY] game=${game.id} could not load RSVPs, no one was notified: ${
+        error.message ?? JSON.stringify(error)
+      }`,
+      { gameId: game.id, error }
+    );
+    return;
+  }
+
+  const recipients = rsvps ?? [];
+  if (recipients.length === 0) return;
+
+  // One shared revision for this edit: everyone is being told about the same
+  // change, so they should all receive the same SEQUENCE.
+  const sequence = await nextCalendarSequence(supabase, game);
+  const changeSummary = changes.join('\n');
+
+  logger.info(`[updateGame] game=${game.id} notifying ${recipients.length} player(s)`, {
+    gameId: game.id,
+  });
+
+  let sent = 0;
+  let dispatched = 0;
+  const failures: string[] = [];
+
+  for (const rsvp of recipients) {
+    const player = rsvp.players as unknown as Player;
+
+    // Isolate each recipient: one malformed player row must not cost everyone
+    // after them their notification.
+    try {
+      if (!player?.email) continue;
+      if (!(await shouldSendNotification(player.email, 'game_updated'))) continue;
+
+      // Resend allows 2 requests/second. sendEmail only throttles *within* a
+      // single call, and we send one email per player, so the pacing is ours.
+      // Counts actual sends, not loop position, so skipped players cost nothing.
+      if (dispatched > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+      dispatched += 1;
+
+      const isWaitlisted = rsvp.status === 'waitlist';
+
+      const tokenResult = await createEmailActionToken({
+        gameId: game.id,
+        playerId: player.id,
+        action: 'cancel_rsvp',
+      });
+
+      if (!tokenResult.success) {
+        // The email still sends, degraded to a plain link by the template. Worth
+        // a line: for waitlisted players this is the "Leave the waitlist" button.
+        logger.error(
+          `[ERR_GAME_UPDATE_TOKEN] game=${game.id} player=${player.id} one-click cancel link unavailable`,
+          { gameId: game.id, playerId: player.id }
+        );
+      }
+
+      // Waitlisted players get no .ics — see this function's doc comment.
+      const icsContent = isWaitlisted
+        ? null
+        : generateGameIcs({
+            game,
+            location,
+            playerEmail: player.email,
+            status: 'CONFIRMED',
+            sequence,
+          });
+
+      const result = await sendEmail({
+        to: player.email,
+        subject: `Game Update: ${formatDate(game.date)} Poker Night`,
+        react: GameUpdated({
+          gameId: game.id,
+          playerName: formatPlayerName(player),
+          changes: changeSummary,
+          date: formatDate(game.date),
+          time: formatTime(game.time),
+          location: location.name,
+          address: location.address,
+          buyIn: game.buyIn,
+          notes: game.notes || undefined,
+          cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
+          waitlisted: isWaitlisted,
+        }),
+        icsContent: icsContent || undefined,
+      });
+
+      // sendEmail catches internally and never throws, so this returned value is
+      // the only channel a delivery failure can be observed through.
+      if (result.success) {
+        sent += 1;
+      } else {
+        failures.push(`${player.email}: ${result.error ?? 'unknown error'}`);
+      }
+    } catch (playerError) {
+      failures.push(
+        `${player?.email ?? `player ${player?.id ?? 'unknown'}`}: ${
+          playerError instanceof Error ? playerError.message : String(playerError)
+        }`
+      );
+    }
+  }
+
+  if (failures.length > 0) {
+    logger.error(
+      `[ERR_GAME_UPDATE_NOTIFY] game=${game.id} ${failures.length} of ${
+        recipients.length
+      } update emails failed: ${failures.join('; ')}`,
+      { gameId: game.id, failures }
+    );
+  } else {
+    logger.info(`[updateGame] game=${game.id} notified ${sent} player(s)`, { gameId: game.id });
+  }
+}
+
 export async function updateGame(
   gameId: string,
   gameData: { date: string; time: string; buyIn: number; location_id: string; notes: string }
@@ -352,116 +542,85 @@ export async function updateGame(
 
     const validData = result.data;
 
-    // Fetch old game data before updating (for change detection)
-    const { data: oldGame } = await supabase
-      .from('games')
-      .select('*, locations(*)')
-      .eq('id', gameId)
-      .single();
+    // Both reads are independent, so run them together. Their errors must be
+    // checked: without oldGame there are no changes to describe, and silently
+    // continuing would write the game and tell nobody — the exact failure this
+    // action exists to prevent.
+    const [
+      { data: oldGame, error: oldGameError },
+      { data: newLocation, error: locationError },
+    ] = await Promise.all([
+      supabase.from('games').select('*, locations(*)').eq('id', gameId).single(),
+      supabase.from('locations').select('*').eq('id', validData.location_id).single(),
+    ]);
 
-    // Fetch new location details
-    const { data: newLocation } = await supabase
-      .from('locations')
-      .select('*')
-      .eq('id', validData.location_id)
-      .single();
+    if (oldGameError || !oldGame) {
+      return handleServerError(
+        oldGameError ?? new Error(`Game ${gameId} not found`),
+        'ERR_GAME_UPDATE_FETCH',
+        'Could not load the current game details, so nothing was changed. Please try again.'
+      );
+    }
 
-    const { error } = await supabase
+    if (locationError || !newLocation) {
+      return handleServerError(
+        locationError ?? new Error(`Location ${validData.location_id} not found`),
+        'ERR_GAME_UPDATE_LOCATION',
+        'That location could not be found. Pick a location and try again.'
+      );
+    }
+
+    const changes = describeGameChanges({
+      oldGame: oldGame as Game,
+      oldLocation: (oldGame.locations as unknown as Location) ?? null,
+      newGame: validData,
+      newLocation: newLocation as Location,
+    });
+
+    const { data: updatedGame, error } = await supabase
       .from('games')
       .update({
         date: validData.date,
         time: validData.time,
         buyIn: validData.buyIn,
         location_id: validData.location_id,
-        venue: newLocation?.name || '', // Populate venue for backward compatibility
+        venue: newLocation.name, // Populate venue for backward compatibility
         notes: validData.notes || null,
       })
-      .eq('id', gameId);
+      .eq('id', gameId)
+      .select()
+      .maybeSingle();
 
     if (error) {
       return handleServerError(error, 'ERR_GAME_UPDATE', 'Failed to update game. Please try again.');
     }
 
-    // Send update email to all confirmed RSVPs
-    if (oldGame && newLocation) {
-      const oldLocation = oldGame.locations as unknown as Location;
-
-      // Detect what changed
-      const changes: string[] = [];
-      if (validData.date !== oldGame.date) {
-        changes.push(`Date changed: ${formatDate(oldGame.date)} → ${formatDate(validData.date)}`);
-      }
-      if (validData.time !== oldGame.time) {
-        changes.push(`Time changed: ${formatTime(oldGame.time)} → ${formatTime(validData.time)}`);
-      }
-      if (validData.location_id !== oldGame.location_id) {
-        changes.push(`Location changed: ${oldLocation.name} → ${newLocation.name}`);
-      }
-      if (validData.buyIn !== oldGame.buyIn) {
-        changes.push(`Buy-in changed: $${oldGame.buyIn} → $${validData.buyIn}`);
-      }
-      if (validData.notes !== oldGame.notes) {
-        changes.push('Notes updated');
-      }
-
-      // Only send email if something actually changed
-      if (changes.length > 0) {
-        // Get all confirmed RSVPs
-        const { data: rsvps } = await supabase
-          .from('rsvps')
-          .select('*, players(*)')
-          .eq('gameId', gameId)
-          .eq('status', 'confirmed');
-
-        // Send update email to each confirmed player
-        if (rsvps && rsvps.length > 0) {
-          for (const rsvp of rsvps) {
-            const player = rsvp.players as unknown as Player;
-            if (player && player.email) {
-              // Generate one-click cancel RSVP token
-              const tokenResult = await createEmailActionToken({
-                gameId,
-                playerId: player.id,
-                action: 'cancel_rsvp',
-              });
-
-              // Generate updated calendar invite
-              const icsContent = generateGameIcs({
-                game: {
-                  ...oldGame,
-                  date: validData.date,
-                  time: validData.time,
-                  buyIn: validData.buyIn,
-                  location_id: validData.location_id,
-                  notes: validData.notes || null,
-                } as Game,
-                location: newLocation,
-                playerEmail: player.email,
-                status: 'CONFIRMED',
-                sequence: 1, // Increment sequence for update
-              });
-
-              await sendEmail({
-                to: player.email,
-                subject: `Game Update: ${formatDate(validData.date)} Poker Night`,
-                react: GameUpdated({
-                  gameId: oldGame.id,
-                  playerName: formatPlayerName(player),
-                  changes: changes.join('\n'),
-                  date: formatDate(validData.date),
-                  time: formatTime(validData.time),
-                  location: newLocation.name,
-                  address: newLocation.address,
-                  buyIn: validData.buyIn,
-                  notes: validData.notes || undefined,
-                  cancelRsvpUrl: tokenResult.success ? tokenResult.url : undefined,
-                }),
-                icsContent: icsContent || undefined,
-              });
-            }
-          }
+    // Notify off the request path. Each recipient costs several sequential round
+    // trips (preference check, token mint, feature-flag lookup, Resend call) plus
+    // a 1s pause for Resend's rate limit, so a full table would otherwise stall
+    // the admin's save long enough to time out.
+    if (changes.length > 0 && updatedGame) {
+      after(async () => {
+        try {
+          await sendGameUpdatedNotifications({
+            // Safe to reuse the request-scoped client after the response: the
+            // background work only reads, and never writes cookies back.
+            supabase,
+            game: updatedGame as Game,
+            location: newLocation as Location,
+            changes,
+          });
+        } catch (notificationError) {
+          logger.error(
+            `[ERR_GAME_UPDATE_NOTIFY] game=${gameId} notifications threw: ${
+              notificationError instanceof Error
+                ? notificationError.message
+                : String(notificationError)
+            }`,
+            { gameId, error: notificationError }
+          );
         }
-      }
+      });
     }
 
     revalidatePath(`/game/${gameId}`);
@@ -502,6 +661,13 @@ export async function deleteGame(gameId: string) {
 
     const affectedPlayerIds = [...new Set((affectedGamePlayers ?? []).map((gp) => gp.playerId))];
 
+    // Reserve the cancellation's SEQUENCE while the row still exists. It has to
+    // beat the invite attendees are holding — which climbs with every reschedule
+    // — or their calendar keeps showing a game that is no longer happening.
+    const cancellationSequence = game
+      ? await nextCalendarSequence(supabase, game as Game)
+      : 1;
+
     const { error } = await supabase.from('games').delete().eq('id', gameId);
 
     if (error) {
@@ -529,7 +695,7 @@ export async function deleteGame(gameId: string) {
             location,
             playerEmail: player.email,
             status: 'CANCELLED',
-            sequence: 1, // Increment sequence for cancellation
+            sequence: cancellationSequence,
           });
 
           await sendEmail({

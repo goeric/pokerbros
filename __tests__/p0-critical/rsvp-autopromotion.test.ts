@@ -32,6 +32,12 @@ jest.mock('@/lib/auth-helpers', () => ({
 jest.mock('@/lib/email/send-email')
 jest.mock('@/lib/email/check-preferences')
 jest.mock('@/lib/email/generate-ics')
+// Stubbed so reserving an .ics sequence doesn't add rpc() calls — this suite
+// asserts on rpc() to verify waitlist promotion specifically.
+const RESERVED_SEQUENCE = 4
+jest.mock('@/lib/email/calendar-sequence', () => ({
+  nextCalendarSequence: jest.fn().mockResolvedValue(4),
+}))
 jest.mock('@/lib/email/action-tokens', () => ({
   createEmailActionToken: jest.fn().mockResolvedValue({ success: true, url: 'https://test.com/action' }),
 }))
@@ -603,12 +609,14 @@ describe('P0.2: RSVP Auto-Promotion (Critical)', () => {
 
       await cancelRSVP(GAME_ID, CONFIRMED_PLAYER_ID)
 
-      // Verify calendar ICS was generated
+      // Verify calendar ICS was generated. The sequence must come from the
+      // per-game counter, not a constant, or the promoted player's calendar
+      // ignores the invite once the game has been rescheduled.
       expect(mockGenerateGameIcs).toHaveBeenCalledWith(
         expect.objectContaining({
           playerEmail: 'jane@test.com',
           status: 'CONFIRMED',
-          sequence: 0,
+          sequence: RESERVED_SEQUENCE,
         })
       )
 

@@ -32,6 +32,8 @@ jest.mock('@/lib/auth-helpers', () => ({
 jest.mock('@/lib/email/send-email')
 jest.mock('@/lib/email/check-preferences')
 jest.mock('@/lib/email/generate-ics')
+// Stubbed so reserving an .ics sequence doesn't add rpc() calls to the mock client
+jest.mock('@/lib/email/calendar-sequence')
 jest.mock('@/lib/email/action-tokens', () => ({
   createEmailActionToken: jest.fn().mockResolvedValue({ success: true, url: 'https://test.com/action' }),
 }))
