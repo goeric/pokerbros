@@ -13,16 +13,14 @@ interface LiveGamePageProps {
 export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const { id: gameId } = await params;
 
-  // Get admin status server-side
-  const { isAdmin } = await getServerAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Fetch game
-  const { data: game } = await supabase
-    .from('games')
-    .select('*')
-    .eq('id', gameId)
-    .single();
+  // Auth gates what the tracker lets you do, not whether the page renders
+  // (the redirect below turns on game status), so it runs alongside the fetch.
+  const [{ isAdmin }, { data: game }] = await Promise.all([
+    getServerAuth(),
+    supabase.from('games').select('*').eq('id', gameId).single(),
+  ]);
 
   if (!game) {
     return (

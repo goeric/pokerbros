@@ -5,15 +5,14 @@ import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 // This is a Server Component - it runs on the server and fetches data before rendering
 export default async function AdminPage() {
-  // Get auth state including role
-  const { isAdmin, role } = await getServerAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Fetch players on the server before rendering
-  const { data: players, error } = await supabase
-    .from('players')
-    .select('*')
-    .order('createdAt', { ascending: false });
+  // Auth is used to decide what the page can do, not whether it renders, so it
+  // runs alongside the player query rather than blocking it.
+  const [{ isAdmin, role }, { data: players, error }] = await Promise.all([
+    getServerAuth(),
+    supabase.from('players').select('*').order('createdAt', { ascending: false }),
+  ]);
 
   if (error) {
     logger.error('Error fetching players', error);
