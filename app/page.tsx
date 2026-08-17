@@ -4,12 +4,13 @@ import { getServerAuth } from '@/lib/auth-server';
 import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 export default async function HomePage() {
-  // Get admin status server-side
-  const { isAdmin } = await getServerAuth();
   const supabase = await createSupabaseServerClient();
 
-  // Fetch all data in parallel on the server
-  const [gamesRes, playersRes, gamePlayersRes, rsvpsRes] = await Promise.all([
+  // Auth runs alongside the page data rather than before it - it was previously
+  // awaited first, so every request paid an auth round trip before the queries
+  // had even started.
+  const [{ isAdmin }, gamesRes, playersRes, gamePlayersRes, rsvpsRes] = await Promise.all([
+    getServerAuth(),
     supabase.from('games').select('*').order('date', { ascending: false }),
     supabase.from('players').select('*'),
     supabase.from('game_players').select('*'),

@@ -2,7 +2,6 @@
 
 import React, { createContext, startTransition, useContext, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from './supabase';
 
 interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -13,32 +12,68 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
+ * The Supabase browser client is ~200KB of JS and is needed only to sign in, to
+ * sign out, and to watch an existing session for background token refreshes.
+ * Importing it at module scope put all of it in the initial bundle of every
+ * page, including for signed-out visitors who can never use any of it.
+ *
+ * Loading it through this helper defers the download until something actually
+ * calls it, so it never blocks first paint and signed-out visitors never pay
+ * for it at all.
+ */
+async function getBrowserClient() {
+  const { supabase } = await import('./supabase');
+  return supabase;
+}
+
+/**
  * Simplified AuthProvider - only provides client-side auth actions
  * Auth state is now managed server-side via getServerAuth() in layout.tsx
  * Navigation receives auth state as props, eliminating flash and race conditions
+ *
+ * `hasSession` comes from the server render. It gates the auth-state
+ * subscription, which exists to pick up background token refreshes — something
+ * that can only happen when a session already exists.
  */
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+  children,
+  hasSession = false,
+}: {
+  children: React.ReactNode;
+  hasSession?: boolean;
+}) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!hasSession) return;
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        startTransition(() => {
-          router.refresh();
-        });
-      }
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    getBrowserClient().then((supabase) => {
+      if (!supabase || cancelled) return;
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          startTransition(() => {
+            router.refresh();
+          });
+        }
+      });
+
+      unsubscribe = () => subscription.unsubscribe();
     });
 
     return () => {
-      subscription.unsubscribe();
+      cancelled = true;
+      unsubscribe?.();
     };
-  }, [router]);
+  }, [router, hasSession]);
 
   const signIn = async (email: string, password: string) => {
+    const supabase = await getBrowserClient();
     if (!supabase) {
       return { error: new Error('Supabase not configured') };
     }
@@ -58,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    const supabase = await getBrowserClient();
     if (!supabase) {
       return { error: new Error('Supabase not configured') };
     }
@@ -76,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    const supabase = await getBrowserClient();
     if (!supabase) return;
 
     await supabase.auth.signOut();
