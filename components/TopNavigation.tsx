@@ -4,7 +4,7 @@ import { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { UserRole } from '@/lib/auth-server';
 import { useAuth } from '@/lib/auth-context';
 import PokerBrosLogo from './PokerBrosLogo';
@@ -22,11 +22,51 @@ export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { signOut } = useAuth();
 
+  const closeMobileMenu = useCallback(() => setMobileMenuOpen(false), []);
+
   const handleSignOut = async () => {
+    closeMobileMenu();
     await signOut();
   };
 
-  const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
+  const toggleMobileMenu = () => setMobileMenuOpen((open) => !open);
+
+  // Close on navigation. This component lives in the layout, so it survives
+  // client-side route changes and the menu would otherwise stay open on top of
+  // the page you just navigated to - which is what made the login screen
+  // unreachable on mobile. Doing it here rather than per link means a link
+  // added later cannot reintroduce the bug by forgetting a handler.
+  //
+  // Adjusted during render rather than in an effect so the menu is already gone
+  // in the same commit as the new route, with no frame where it covers the page.
+  const [lastPathname, setLastPathname] = useState(pathname);
+  if (lastPathname !== pathname) {
+    setLastPathname(pathname);
+    setMobileMenuOpen(false);
+  }
+
+  // Escape closes the menu, matching the overlay tap.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileMenuOpen]);
+
+  // Stop the page behind the overlay from scrolling while the menu is open.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [mobileMenuOpen]);
 
   const navItems = [
     { href: '/', label: 'The Floor', icon: Spade },
@@ -113,8 +153,12 @@ export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg'
 
             {/* Mobile Menu Button */}
             <button
+              type="button"
               onClick={toggleMobileMenu}
-              className="md:hidden text-gray-400 hover:text-white transition-colors"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-menu"
+              className="md:hidden -mr-2 flex h-11 w-11 items-center justify-center text-gray-400 hover:text-white transition-colors"
             >
               {mobileMenuOpen ? <X size={24} /> : <List size={24} />}
             </button>
@@ -123,8 +167,21 @@ export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg'
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/5 bg-black/95 backdrop-blur-xl">
-            <div className="px-4 py-4 space-y-2">
+          <div
+            id="mobile-menu"
+            className="md:hidden border-t border-white/5 bg-black/95 backdrop-blur-xl relative z-50"
+          >
+            {/* Any tap on a link or button in here dismisses the menu. Handling
+                it once at the container covers same-route taps, where the
+                pathname never changes and the effect above would not fire. */}
+            <div
+              className="px-4 py-4 space-y-2"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('a, button')) {
+                  closeMobileMenu();
+                }
+              }}
+            >
               {navItems.map((item) => {
                 if (item.adminOnly && !role) return null;
 
@@ -135,7 +192,6 @@ export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg'
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                       isActive
                         ? 'bg-poker-gold/10 text-white border border-poker-gold/20'
@@ -154,7 +210,6 @@ export default function TopNavigation({ user, role, playerAvatar = 'avatar1.svg'
                   <div className="space-y-3">
                     <Link
                       href="/profile"
-                      onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-black/40 to-transparent border border-white/5 hover:bg-white/5 transition-colors"
                     >
                       <div className="relative">
