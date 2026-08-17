@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { handleServerError } from '@/lib/auth-helpers';
 import { sendEmail } from '@/lib/email/send-email';
 import { generateGameIcs } from '@/lib/email/generate-ics';
+import { nextCalendarSequence } from '@/lib/email/calendar-sequence';
 import RsvpConfirmation from '@/emails/templates/RsvpConfirmation';
 import RsvpCancellation from '@/emails/templates/RsvpCancellation';
 import { formatDate, formatTime, formatPlayerName } from '@/lib/utils';
@@ -88,7 +89,7 @@ export async function addRSVPViaToken(gameId: string, playerId: string) {
           location,
           playerEmail: player.email,
           status: 'CONFIRMED',
-          sequence: 0,
+          sequence: await nextCalendarSequence(supabaseAdmin, game as Game),
         });
 
         // Send confirmation email
@@ -166,13 +167,15 @@ export async function cancelRSVPViaToken(gameId: string, playerId: string) {
         action: 'rsvp',
       });
 
-      // Generate calendar cancellation
+      // Generate calendar cancellation. The CANCEL only withdraws the event if
+      // its SEQUENCE beats the invite the player holds, so take the next value
+      // from the shared per-game counter rather than a constant.
       const icsContent = generateGameIcs({
         game: game as Game,
         location,
         playerEmail: player.email,
         status: 'CANCELLED',
-        sequence: 1, // Increment sequence for update
+        sequence: await nextCalendarSequence(supabaseAdmin, game as Game),
       });
 
       // Send cancellation email

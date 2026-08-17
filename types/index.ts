@@ -49,6 +49,9 @@ export interface Game {
   location_id?: string;  // Reference to Location
   status: 'upcoming' | 'in_progress' | 'completed';
   notes?: string;
+  // Highest iCalendar SEQUENCE emitted for this game. Advance it only through
+  // nextCalendarSequence() so each invite supersedes the one attendees hold.
+  calendar_sequence: number;
   createdAt: string;
 }
 
@@ -62,11 +65,13 @@ export interface GamePlayer {
   position?: number;
 }
 
+export type RsvpStatus = 'confirmed' | 'declined' | 'waitlist';
+
 export interface RSVP {
   id: string;
   gameId: string;
   playerId: string;
-  status: 'confirmed' | 'declined' | 'waitlist';
+  status: RsvpStatus;
   timestamp: string;
   waitlistPosition?: number;
 }

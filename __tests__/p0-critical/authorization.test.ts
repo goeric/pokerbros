@@ -12,7 +12,7 @@
  * Estimated Tests: 6
  */
 
-import { addRSVP, cancelRSVP, deleteGame } from '@/app/game/[id]/actions'
+import { addRSVP, cancelRSVP, deleteGame, updateGame } from '@/app/game/[id]/actions'
 import { createSupabaseServerClient, requireAdmin } from '@/lib/auth-helpers'
 
 // Mock dependencies
@@ -29,6 +29,8 @@ jest.mock('@/lib/auth-helpers', () => ({
 jest.mock('@/lib/email/send-email')
 jest.mock('@/lib/email/check-preferences')
 jest.mock('@/lib/email/generate-ics')
+// Stubbed so reserving an .ics sequence doesn't add rpc() calls to the mock client
+jest.mock('@/lib/email/calendar-sequence')
 jest.mock('@/lib/email/action-tokens', () => ({
   createEmailActionToken: jest.fn().mockResolvedValue({ success: true, url: 'https://test.com/action' }),
 }))
@@ -379,6 +381,32 @@ describe('P0.4: Authorization (Critical)', () => {
 
       expect(result).toEqual({ success: true })
       expect(mockRequireAdmin).toHaveBeenCalledWith(mockSupabase)
+    })
+  })
+
+  describe('Game updates', () => {
+    // updateGame fans an email out to every seated and waitlisted player, so an
+    // authorization regression here is a mass-mail vector, not just a bad write.
+    it('rejects a game update from a non-admin, without reading or writing anything', async () => {
+      mockRequireAdmin.mockRejectedValue(new Error('Unauthorized: Admin access required'))
+
+      const futureDate = new Date()
+      futureDate.setDate(futureDate.getDate() + 30)
+      const date = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}-${String(futureDate.getDate()).padStart(2, '0')}`
+
+      const result = await updateGame(GAME_ID, {
+        date,
+        time: '19:00',
+        buyIn: 100,
+        location_id: '223e4567-e89b-12d3-a456-426614174001',
+        notes: '',
+      })
+
+      expect(result).toEqual({ error: 'Unauthorized: Admin access required' })
+      expect(mockSupabase.from).not.toHaveBeenCalled()
     })
   })
 })
