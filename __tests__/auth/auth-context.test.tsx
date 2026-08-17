@@ -84,16 +84,40 @@ describe('AuthProvider', () => {
 
   it('refreshes the router when Supabase auth state changes', async () => {
     render(
-      <AuthProvider>
+      <AuthProvider hasSession>
         <div>child</div>
       </AuthProvider>
     );
+
+    // The Supabase client is imported lazily, so the subscription is registered
+    // a tick after mount rather than synchronously.
+    await waitFor(() => {
+      expect(authStateChangeCallback).not.toBeNull();
+    });
 
     authStateChangeCallback?.('SIGNED_IN');
 
     await waitFor(() => {
       expect(mockRefresh).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('never touches the Supabase client for a signed-out visitor', async () => {
+    // The client is ~200KB of JS. Subscribing when there is no session to watch
+    // would pull it into the initial bundle of every public page for readers who
+    // can never use it.
+    render(
+      <AuthProvider>
+        <div>child</div>
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('child')).toBeTruthy();
+    });
+
+    expect(mockOnAuthStateChange).not.toHaveBeenCalled();
+    expect(mockRefresh).not.toHaveBeenCalled();
   });
 
   it('navigates to admin after password sign-in succeeds', async () => {

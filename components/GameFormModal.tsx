@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { listLocations } from '@/app/admin/locations/actions';
 import { Location } from '@/types';
 import Modal from './Modal';
 import { formatDate, formatDateWithDay, formatTime } from '@/lib/utils';
@@ -38,25 +38,34 @@ export default function GameFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locations, setLocations] = useState<Location[]>([]);
 
-  // Fetch locations on mount
+  // Load locations the first time the form is actually opened.
+  //
+  // This used to run on mount with `locationId` in the dependency array, and the
+  // effect assigns `locationId` — so it re-ran and fetched twice. It also ran on
+  // pages that merely render the closed modal, making every visitor pay for data
+  // only an admin editing a game ever sees.
   useEffect(() => {
-    async function fetchLocations() {
-      if (!supabase) return;
-      const { data } = await supabase
-        .from('locations')
-        .select('*')
-        .order('name');
-      if (data) {
-        const typedData = data as Location[];
-        setLocations(typedData);
-        // If no location selected yet and we have locations, select the first one
-        if (!locationId && typedData.length > 0) {
-          setLocationId(typedData[0].id);
-        }
+    if (!isOpen) return;
+
+    let cancelled = false;
+
+    listLocations().then((result) => {
+      if (cancelled || !('success' in result) || !result.success) return;
+
+      const typedData = result.data as Location[];
+      setLocations(typedData);
+
+      // Default to the first location only when nothing is selected yet.
+      // Uses the functional form so `locationId` stays out of the deps.
+      if (typedData.length > 0) {
+        setLocationId((current) => current || typedData[0].id);
       }
-    }
-    fetchLocations();
-  }, [locationId]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // Update form when initialData changes (for edit mode)
   useEffect(() => {

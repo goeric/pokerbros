@@ -93,3 +93,31 @@ export async function deleteLocation(id: string) {
     return handleServerError(error, 'ERR_LOCATION_DELETE_AUTH');
   }
 }
+
+/**
+ * Locations for the game create/edit form.
+ *
+ * Deliberately a server action rather than a browser query: fetching this
+ * client-side pulled the ~200KB Supabase browser client into the bundle of
+ * every page that can open the game form, including for visitors who never
+ * open it. Public read access is allowed by RLS, so no admin check here — the
+ * mutations above are what require authorization.
+ */
+export async function listLocations() {
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from('locations')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      return handleServerError(error, 'ERR_LOCATION_LIST', 'Failed to load locations.');
+    }
+
+    return { success: true as const, data: data ?? [] };
+  } catch (error) {
+    return handleServerError(error, 'ERR_LOCATION_LIST_AUTH');
+  }
+}

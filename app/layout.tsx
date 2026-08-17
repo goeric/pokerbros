@@ -6,7 +6,6 @@ import { ThemeProvider } from '@/lib/theme-provider';
 import TopNavigation from '@/components/TopNavigation';
 import UnauthorizedUser from '@/components/UnauthorizedUser';
 import { getServerAuth } from '@/lib/auth-server';
-import { createSupabaseServerClient } from '@/lib/auth-helpers';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -62,25 +61,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // Fetch auth state on the server - no client-side delay!
+  // getServerAuth already loads the player profile, so this no longer repeats
+  // that query.
   const auth = await getServerAuth();
 
-  // Fetch player avatar if user is logged in
-  let playerAvatar = 'avatar1.svg';
-  let playerName = '';
-  if (auth.user) {
-    const supabase = await createSupabaseServerClient();
-
-    const { data: playerData } = await supabase
-      .from('players')
-      .select('avatar, first_name, last_name')
-      .eq('email', auth.user.email)
-      .single();
-
-    if (playerData) {
-      playerAvatar = playerData.avatar || 'avatar1.svg';
-      playerName = `${playerData.first_name} ${playerData.last_name.charAt(0)}.`;
-    }
-  }
+  const playerAvatar = auth.player?.avatar || 'avatar1.svg';
+  const playerName = auth.player
+    ? `${auth.player.first_name} ${auth.player.last_name.charAt(0)}.`
+    : '';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -113,7 +101,7 @@ export default async function RootLayout({
         <div className="fixed top-0 left-1/2 w-[800px] h-[500px] bg-poker-feltLight/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
 
         <ThemeProvider>
-          <AuthProvider>
+          <AuthProvider hasSession={!!auth.user}>
             {/* Show unauthorized message if user is logged in but not a player or admin */}
             {auth.isUnauthorized ? (
               <UnauthorizedUser />
